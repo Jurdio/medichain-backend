@@ -1,0 +1,180 @@
+openapi: 3.0.0
+info:
+  title: Medichain Auth API
+  version: 1.0.0
+  description: |
+    Authentication API using JWT.
+    Supports:
+    - User registration
+    - Login
+    - Access token refresh
+    - Logout
+
+  contact:
+    name: Dmytro Kupets
+    email: dev@medichain.app
+
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+x-logo:
+  url: https://avatars.githubusercontent.com/u/103669226?s=200
+  altText: Medichain Logo
+
+tags:
+  - name: Auth
+    description: Authentication-related endpoints
+
+paths:
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register
+      description: Creates a new user using phone and password. Returns access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                  example: "+380991234567"
+                password:
+                  type: string
+                  example: StrongPassword123
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: User already exists
+        '500':
+          description: Server error
+
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Log in an existing user
+      description: Authenticates a user and returns new access and refresh tokens.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, password]
+              properties:
+                phone:
+                  type: string
+                  example: "+380991234567"
+                password:
+                  type: string
+                  example: StrongPassword123
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid password
+        '404':
+          description: User not found
+        '500':
+          description: Server error
+
+  /api/auth/refresh-token:
+    post:
+      tags:
+        - Auth
+      summary: Refresh tokens
+      description: Issues new access and refresh tokens using a valid refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5...
+      responses:
+        '200':
+          description: Tokens refreshed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Refresh token missing
+        '403':
+          description: Invalid or expired refresh token
+
+  /api/auth/logout:
+    post:
+      tags:
+        - Auth
+      summary: Log out user
+      description: Logs out the user by invalidating the refresh token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken:
+                  type: string
+                  example: eyJhbGciOiJIUzI1NiIsInR5...
+      responses:
+        '200':
+          description: Logged out successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Logged out
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        refreshToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        accessExpiresIn:
+          type: integer
+          example: 900
+        accessExpiresAt:
+          type: string
+          format: date-time
+          example: "2025-04-07T13:45:10.000Z"
+        refreshExpiresIn:
+          type: integer
+          example: 604800
+        refreshExpiresAt:
+          type: string
+          format: date-time
+          example: "2025-04-14T13:45:10.000Z"
