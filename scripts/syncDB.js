@@ -4,7 +4,7 @@ const User = require('../src/models/User');
 
 (async () => {
     try {
-        await sequelize.sync({ force: true }); // Видаляє всі таблиці і створює їх знову
+        await sequelize.sync({ force: false }); // Видаляє всі таблиці і створює їх знову
         console.log('✅ Таблиці успішно синхронізовані');
         process.exit(0);
     } catch (error) {
