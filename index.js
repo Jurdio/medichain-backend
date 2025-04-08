@@ -1,6 +1,7 @@
 const express = require('express');
 const authMiddleware = require('./src/middleware/auth');
 const authRoutes = require('./src/routes/auth');
+const documentRoutes = require('./src/routes/documentRoutes');
 const path = require('path');
 require('dotenv').config();
 
@@ -17,6 +18,7 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/documents', documentRoutes);
 
 app.get('/api/protected', authMiddleware, (req, res) => {
     res.json({ message: 'Доступ дозволено!', user: req.user });
