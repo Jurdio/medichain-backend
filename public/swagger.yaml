@@ -1,14 +1,11 @@
 openapi: 3.0.0
 info:
-  title: Medichain Auth API
+  title: Medichain API
   version: 1.0.0
   description: |
-    Authentication API using JWT.
-    Supports:
-    - User registration
-    - Login
-    - Access token refresh
-    - Logout
+    Medichain API includes:
+    - Authentication (JWT)
+    - User document (certificate) management
 
   contact:
     name: Dmytro Kupets
@@ -25,9 +22,11 @@ x-logo:
 tags:
   - name: Auth
     description: Authentication-related endpoints
+  - name: Documents
+    description: Ендпоінти, пов’язані з цифровими документами
 
 paths:
-  /api/auth/register:
+  /api/v1/auth/register:
     post:
       tags:
         - Auth
@@ -59,7 +58,7 @@ paths:
         '500':
           description: Server error
 
-  /api/auth/login:
+  /api/v1/auth/login:
     post:
       tags:
         - Auth
@@ -93,7 +92,7 @@ paths:
         '500':
           description: Server error
 
-  /api/auth/refresh-token:
+  /api/v1/auth/refresh-token:
     post:
       tags:
         - Auth
@@ -122,7 +121,7 @@ paths:
         '403':
           description: Invalid or expired refresh token
 
-  /api/auth/logout:
+  /api/v1/auth/logout:
     post:
       tags:
         - Auth
@@ -153,6 +152,85 @@ paths:
         '500':
           description: Server error
 
+  /api/v1/documents:
+    post:
+      tags:
+        - Documents
+      summary: Створення нового документа
+      description: Додає новий цифровий документ для користувача.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentCreateRequest'
+      responses:
+        '201':
+          description: Документ успішно створено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentResponse'
+        '400':
+          description: Помилка валідації або відсутні поля
+        '500':
+          description: Внутрішня помилка сервера
+
+    get:
+      tags:
+        - Documents
+      summary: Отримання списку документів
+      description: Повертає список документів з можливістю фільтрації за типом і userId, та з пагінацією.
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Номер сторінки
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Кількість елементів на сторінці
+        - in: query
+          name: type
+          schema:
+            type: string
+          description: Тип документа (наприклад passport, driver_license)
+        - in: query
+          name: userId
+          schema:
+            type: string
+            format: uuid
+          description: ID користувача
+      responses:
+        '200':
+          description: Успішне отримання списку
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/DocumentResponse'
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      page:
+                        type: integer
+                      limit:
+                        type: integer
+                      totalPages:
+                        type: integer
+        '500':
+          description: Внутрішня помилка сервера
+
 components:
   schemas:
     AuthResponse:
@@ -178,3 +256,67 @@ components:
           type: string
           format: date-time
           example: "2025-04-14T13:45:10.000Z"
+
+    DocumentCreateRequest:
+      type: object
+      required:
+        - title
+        - type
+        - userId
+      properties:
+        title:
+          type: string
+          example: Паспорт громадянина України
+        description:
+          type: string
+          example: Біометричний паспорт
+        imageUrl:
+          type: string
+          example: https://example.com/documents/passport.jpg
+        issueDate:
+          type: string
+          format: date
+          example: "2020-01-01"
+        expiryDate:
+          type: string
+          format: date
+          example: "2030-01-01"
+        type:
+          type: string
+          example: passport
+        userId:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+    DocumentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        issueDate:
+          type: string
+          format: date
+        expiryDate:
+          type: string
+          format: date
+        type:
+          type: string
+        status:
+          type: string
+        userId:
+          type: string
+          format: uuid
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
