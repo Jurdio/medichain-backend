@@ -1,5 +1,6 @@
 const express = require('express');
 const authMiddleware = require('./src/middleware/auth');
+const basicAuth = require('./src/middleware/basicAuth');
 const authRoutes = require('./src/routes/auth');
 const documentRoutes = require('./src/routes/documentRoutes');
 const path = require('path');
@@ -9,7 +10,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('/docs', (req, res) => {
+app.get('/docs', basicAuth, (req, res) => {
     res.sendFile(path.join(__dirname, 'public/docs.html'));
 });
 
