@@ -1,5 +1,6 @@
 const { DataTypes, Model } = require('sequelize');
 const { sequelize } = require('../config/database');
+const Document = require('../models/Document');
 
 class User extends Model {
 
@@ -38,5 +39,8 @@ User.init(
         timestamps: true,
     }
 );
+
+User.hasMany(Document, { foreignKey: 'userId' });
+Document.belongsTo(User, { foreignKey: 'userId' });
 
 module.exports = User;
