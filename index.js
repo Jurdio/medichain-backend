@@ -3,6 +3,8 @@ const authMiddleware = require('./src/middleware/auth');
 const basicAuth = require('./src/middleware/basicAuth');
 const authRoutes = require('./src/routes/auth');
 const documentRoutes = require('./src/routes/documentRoutes');
+const ipfsRoutes = require('./src/routes/ipfsRoutes');
+const nftRoutes = require('./src/routes/nftRoutes');
 const path = require('path');
 require('dotenv').config();
 
@@ -24,6 +26,9 @@ app.use('/api/v1/documents', documentRoutes);
 app.get('/api/protected', authMiddleware, (req, res) => {
     res.json({ message: 'Доступ дозволено!', user: req.user });
 });
+
+app.use(nftRoutes);
+app.use(ipfsRoutes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`Сервер працює на порту ${PORT}`));
