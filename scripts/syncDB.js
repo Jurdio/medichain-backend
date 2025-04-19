@@ -1,6 +1,7 @@
 require('dotenv').config();
 const { sequelize } = require('../src/config/database');
 const User = require('../src/models/User');
+const MintDraft = require('../src/models/MintDraft');
 
 (async () => {
     try {
