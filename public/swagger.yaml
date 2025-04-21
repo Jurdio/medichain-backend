@@ -30,6 +30,11 @@ paths:
     post:
       tags:
         - Auth
+      x-badges:
+        - color: red
+          label: Beta
+        - color: blue
+          label: 'Popular: true'
       summary: Register
       description: Creates a new user using phone and password. Returns access and refresh tokens.
       requestBody:
