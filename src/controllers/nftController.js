@@ -85,3 +85,97 @@ exports.draft = async function (req, res) {
         res.status(500).json({ error: 'Failed to create draft' });
     }
 };
+
+exports.getDraftById = async function (req, res) {
+    try {
+        const { draftId } = req.params;
+
+        if (!draftId) {
+            return res.status(400).json({ error: 'Missing draft ID' });
+        }
+
+        const draft = await MintDraft.findById(draftId);
+
+        if (!draft) {
+            return res.status(404).json({ error: 'Draft not found' });
+        }
+
+        res.json({
+            status: 'success',
+            draft: {
+                id: draft.id,
+                phone: draft.phone,
+                publicKey: draft.publicKey,
+                type: draft.type,
+                metadataHash: draft.metadataHash,
+                status: draft.status,
+                paidAt: draft.paidAt,
+                createdAt: draft.createdAt,
+            }
+        });
+    } catch (err) {
+        console.error('Error fetching draft by ID:', err);
+        res.status(500).json({ error: 'Failed to fetch draft' });
+    }
+};
+
+// Sequelize-compatible версія
+exports.getDraftHistory = async function (req, res) {
+    try {
+        const {
+            phone,
+            type,
+            status,
+            createdFrom,
+            createdTo,
+            page = 1,
+            limit = 20
+        } = req.query;
+
+        const query = {};
+
+        if (phone) query.phone = phone;
+        if (type) query.type = type;
+        if (status) query.status = status;
+
+        if (createdFrom || createdTo) {
+            query.createdAt = {};
+            if (createdFrom) query.createdAt[Op.gte] = new Date(createdFrom);
+            if (createdTo) query.createdAt[Op.lte] = new Date(createdTo);
+        }
+
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+        const total = await MintDraft.count({ where: query });
+
+        const drafts = await MintDraft.findAll({
+            where: query,
+            order: [['createdAt', 'DESC']],
+            offset: skip,
+            limit: parseInt(limit),
+        });
+
+        res.status(200).json({
+            status: 'success',
+            meta: {
+                total,
+                page: parseInt(page),
+                limit: parseInt(limit),
+                pages: Math.ceil(total / limit)
+            },
+            data: drafts.map(draft => ({
+                id: draft.id,
+                phone: draft.phone,
+                publicKey: draft.publicKey,
+                type: draft.type,
+                metadataHash: draft.metadataHash,
+                status: draft.status,
+                paidAt: draft.paidAt,
+                createdAt: draft.createdAt,
+            }))
+        });
+    } catch (err) {
+        console.error('Error fetching drafts:', err);
+        res.status(500).json({ status: 'error', message: 'Failed to fetch drafts' });
+    }
+};
+
