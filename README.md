@@ -1,8 +1,11 @@
-# 🩺 MediCert Admin
+# 🧬 MediChain Backend
 
-**MediCert Admin** is a web-based admin panel for medical professionals to issue and verify blockchain-protected medical certificates as NFTs. It is part of the MediCert ecosystem — a decentralized medical documentation platform built on trust, transparency, and modern Web3 infrastructure.
+**MediChain Backend** is the core API service that powers the MediCert ecosystem — enabling doctors to securely issue, verify, and mint NFT-based medical certificates.
+
+This backend handles certificate creation, metadata storage, PDF hashing, user authentication (WIP), and blockchain minting operations.
 
 ---
+
 ## 🔗 Related Repositories
 
 Part of the **MediCert** ecosystem:
@@ -15,67 +18,68 @@ Part of the **MediCert** ecosystem:
 ---
 ## 🚀 Features
 
-- 🔒 **Protect Certificate**: Upload medical documents, assign to a wallet, and mint NFTs on the blockchain.
-- ✅ **Verify Certificate**: Validate authenticity by certificate hash or ID.
-- 🕓 **History View**: Browse the full list of previously issued certificates, including status and metadata.
-- 🧾 **PDF Upload Support**: Easy drag-and-drop PDF upload for medical forms.
-- 🖥️ **Admin UI**: Intuitive interface built with PrimeVue & Vue 3.
+- 📄 Create and manage medical certificates
+- 🔐 Hash PDF documents to ensure data integrity
+- 🧾 Store certificate metadata securely
+- ⛓️ Mint certificates as NFTs on Solana
+- 🧪 Verify authenticity by hash or ID
+- 📂 RESTful API with clear route structure
 
 ---
 
-## 📸 Screenshots
-<img src="./docs/img.png" alt="Protect Certificate" width="100%" />
-<img src="./docs/img_1.png" alt="Protect Certificate" width="100%" />
-<img src="./docs/img_2.png" alt="Protect Certificate" width="100%" />
+## ⚙️ Tech Stack
 
----
-
-## 🛠️ Tech Stack
-
-- ⚙️ **Vue 3 + Vite** – Fast modern frontend setup
-- 💠 **PrimeVue** – Clean component library
-- 🌐 **REST API** – Integration with MediCert backend
-- ⛓️ **NFT-ready** – Blockchain-aware UX for certificate minting
+- **Node.js** + **Express**
+- **MongoDB** for certificate & metadata storage
+- **Solana Web3 SDK** for NFT minting
+- **PDFKit** + hashing (SHA-256)
+- Optional file storage via IPFS (planned)
 
 ---
 
 ## 📦 Getting Started
 
 ```bash
-git clone https://github.com/Jurdio/medicert-admin.git
-cd medicert-admin
+git clone https://github.com/Jurdio/medichain-backend.git
+cd medichain-backend
 npm install
 npm run dev
 ```
 ---
-## 🌍 Configuration
-Create a .env file in the root directory:
+
+## 🔐 Environment Configuration
+Create a .env file with the following keys:
 ```
-VITE_SERVER_ADDRESS=https://your-api-domain.com
+PORT=3000
+MONGO_URI=mongodb://localhost:27017/medichain
+JWT_SECRET=supersecurestring
+SOLANA_PRIVATE_KEY=...
 ```
 ---
-📁 Project Structure
+## 📘 API Routes
+POST   /v1/drafts           # Create draft certificate
+GET    /v1/drafts           # Get paginated list
+POST   /v1/verify           # Verify by hash
+POST   /v1/mint             # Mint NFT certificate
+More endpoints documented via Swagger coming soon.
+---
+## 📂 Folder Structure
 ```
 src/
-├── components/       # Reusable components (Sidebar, Tables, Forms)
-├── views/            # Main page views: Protect, Verify, History
-├── assets/           # Images, icons
-├── router/           # Route definitions
-└── main.js           # App entry point
+├── controllers/
+├── routes/
+├── models/
+├── services/
+└── utils/
 ```
 ---
-## 🧠 Roadmap
-Authentication & role management
+## 🧠 Related Projects
+🩺 medicert-admin – Doctor-facing frontend panel
 
-QR-based certificate validation
-
-Metadata preview before minting
-
-Export to PDF/JSON
+📱 medicert-app – Mobile companion app
 ---
-## 🧑‍⚕️ Author
-Made with ❤️ by @Jurdio
+## 🧑‍💻 Author
+Built with ❤️ by @Jurdio
 ---
 ## 📜 License
-MIT License – feel free to fork, adapt, or build upon it.
-
+MIT — use, modify, contribute.
