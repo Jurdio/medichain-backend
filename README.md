@@ -11,14 +11,6 @@ Part of the **MediCert** ecosystem:
 - [🧪 medicert-payment]() — Payment logic & smart contracts for NFT minting and certificate validation.
 
 > More tools and SDKs coming soon!
-## 🔗 Related Repositories
-
-Part of the **MediCert** ecosystem:
-
-- [🔧 medicert-engine](https://github.com/Jurdio/medicert-api) — Backend REST API for certificate creation, metadata management, and NFT minting.
-- [🧪 medicert-payment](https://github.com/Jurdio/medicert-core) — Payment logic & smart contracts for NFT minting and certificate validation.
-
-> More tools and SDKs coming soon!
 
 ---
 ## 🚀 Features
