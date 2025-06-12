@@ -1,5 +1,3 @@
-
-// solana/web3.js
 const {
     Connection,
     PublicKey,
@@ -7,7 +5,6 @@ const {
     Keypair,
 } = require('@solana/web3.js');
 
-// metaplex/js
 const {
     Metaplex,
     keypairIdentity,
@@ -57,7 +54,6 @@ exports.draft = async function (req, res) {
         const draftId = crypto.randomUUID()
         const draftUrl = `${process.env.SERVER_ADDRESS}/mint/checkout/${draftId}`;
 
-        // 1. Зберігаємо у БД
         await MintDraft.create({
             id: draftId,
             publicKey,
@@ -68,13 +64,11 @@ exports.draft = async function (req, res) {
             createdAt: new Date(),
         });
 
-        // 2. Відправляємо SMS
         await smsService.sendSMS({
             to: phone,
             message: `To confirm your certificate, please complete payment: ${draftUrl}`,
         });
 
-        // 3. Успіх
         res.json({
             status: 'success',
             draftId,
@@ -119,7 +113,6 @@ exports.getDraftById = async function (req, res) {
     }
 };
 
-// Sequelize-compatible версія
 exports.getDraftHistory = async function (req, res) {
     try {
         const {
