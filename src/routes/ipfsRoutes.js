@@ -4,8 +4,8 @@ const router = express.Router();
 const multer = require('multer');
 
 const upload = multer({
-    storage: multer.memoryStorage(),      // файл тримається в пам'яті
-    limits: { fileSize: 10 * 1024 * 1024 } // 10 МБ ліміт (за потреби)
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 }
 }).single('file');
 
 router.post('/v1/ipfs/files', upload, ipfsController.uploadFile);
