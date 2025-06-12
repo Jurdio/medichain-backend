@@ -2,14 +2,12 @@ const { DataTypes, Model } = require('sequelize');
 const { sequelize } = require('../config/database');
 
 class MintDraft extends Model {
-    // Знаходимо чернетку по ID
     static async findById(id) {
         return await this.findOne({
             where: { id },
         });
     }
 
-    // Знаходимо всі чернетки по телефону пацієнта
     static async findByPhone(phone) {
         return await this.findAll({
             where: { phone },
@@ -17,7 +15,6 @@ class MintDraft extends Model {
         });
     }
 
-    // Оновлюємо статус на "paid" + зберігаємо paidAt
     static async markAsPaid(id) {
         return await this.update(
             {
@@ -30,7 +27,6 @@ class MintDraft extends Model {
         );
     }
 
-    // Оновлюємо статус на "minted" + зберігаємо mintTx
     static async markAsMinted(id, mintTx) {
         return await this.update(
             {
