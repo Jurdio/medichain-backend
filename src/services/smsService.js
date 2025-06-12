@@ -1,7 +1,7 @@
 const axios = require('axios');
 
 const TURBOSMS_TOKEN = process.env.TURBOSMS_TOKEN;
-const TURBOSMS_SENDER = 'TAXI'; // 👈 або заміни на той, що тобі потрібен
+const TURBOSMS_SENDER = 'TAXI';
 
 async function sendSMS({ to, message }) {
     try {
