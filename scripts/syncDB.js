@@ -5,7 +5,7 @@ const MintDraft = require('../src/models/MintDraft');
 
 (async () => {
     try {
-        await sequelize.sync({ force: false }); // Видаляє всі таблиці і створює їх знову
+        await sequelize.sync({ force: false });
         console.log('✅ Таблиці успішно синхронізовані');
         process.exit(0);
     } catch (error) {
