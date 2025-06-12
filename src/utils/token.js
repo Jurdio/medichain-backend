@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 
 function generateTokens(user) {
-    const expiresInSec = 15 * 60; // 15 хвилин у секундах
+    const expiresInSec = 15 * 60;
     const expiresAt = new Date(Date.now() + expiresInSec * 1000);
 
     const accessToken = jwt.sign(
