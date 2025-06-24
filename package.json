@@ -33,6 +33,7 @@
     "tweetnacl": "^1.0.3"
   },
   "devDependencies": {
+    "@types/bs58": "^4.0.4",
     "nodemon": "^3.1.9"
   }
 }
