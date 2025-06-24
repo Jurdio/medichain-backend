@@ -1,12 +1,12 @@
-import nacl from 'tweetnacl';
 import bs58 from 'bs58';
+import * as nacl from 'tweetnacl';
 
 export function verifySignature(
     message: Uint8Array,
     signature: number[],
     pubkeyBase58: string,
 ): boolean {
-    const sigUint8 = Uint8Array.from(signature);
-    const pubUint8 = bs58.decode(pubkeyBase58);
-    return nacl.sign.detached.verify(message, sigUint8, pubUint8);
+    const sig = Uint8Array.from(signature);
+    const pk  = bs58.decode(pubkeyBase58);
+    return nacl.sign.detached.verify(message, sig, pk);
 }

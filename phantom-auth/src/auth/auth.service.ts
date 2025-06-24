@@ -13,6 +13,7 @@ export class AuthService {
     createNonce(pubkey: string) {
         const nonce = this.nonceSvc.generate(pubkey);
         const msg = `Login to example.com\nNonce: ${nonce}`;
+        console.log(msg);
         return { nonce, msgToSign: msg };
     }
 

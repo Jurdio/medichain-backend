@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from './auth/auth.module';
 
@@ -7,12 +7,15 @@ import { AuthModule } from './auth/auth.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.registerAsync({
-      useFactory: () => ({
-        secret: process.env.JWT_SECRET,
-        signOptions: { expiresIn: process.env.JWT_EXP || '15m' },
+      global: true,                             // ← робимо глобальним
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (cfg: ConfigService) => ({
+        secret: cfg.get('JWT_SECRET'),
+        signOptions: { expiresIn: cfg.get('JWT_EXP', '15m') },
       }),
     }),
-    AuthModule,
+    AuthModule,                                 // важливо: вже після JwtModule
   ],
 })
 export class AppModule {}

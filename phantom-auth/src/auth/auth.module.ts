@@ -5,7 +5,6 @@ import { AuthService } from './auth.service';
 import { NonceService } from './nonce.service';
 
 @Module({
-    imports: [JwtModule],
     controllers: [AuthController],
     providers: [AuthService, NonceService],
 })
