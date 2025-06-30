@@ -17,7 +17,7 @@ export class AuthService {
         return { nonce, msgToSign: msg };
     }
 
-    async verify(pubkey: string, signature: number[], nonce: string) {
+    async generateToken(pubkey: string, signature: number[], nonce: string) {
         if (!this.nonceSvc.consume(pubkey, nonce)) {
             throw new UnauthorizedException('Invalid nonce');
         }
@@ -25,6 +25,10 @@ export class AuthService {
         const ok = verifySignature(msg, signature, pubkey);
         if (!ok) throw new UnauthorizedException('Bad signature');
 
-        return this.jwt.sign({ sub: pubkey });
+        return this.jwt.sign({ pubkey });
+    }
+
+    async verifyToken(token: string) {
+        return this.jwt.verify(token);
     }
 }

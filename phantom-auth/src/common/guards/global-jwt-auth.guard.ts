@@ -1,11 +1,10 @@
-// src/common/guards/jwt-auth.guard.ts
 import { Injectable, ExecutionContext } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Reflector } from '@nestjs/core';
 import { SKIP_AUTH_JWT_KEY } from '../decorators/skip-auth-jwt.decorator';
 
 @Injectable()
-export class JwtAuthGuard extends AuthGuard('jwt') {
+export class GlobalJwtAuthGuard extends AuthGuard('jwt') {
     constructor(private reflector: Reflector) {
         super();
     }
@@ -15,6 +14,11 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
             SKIP_AUTH_JWT_KEY,
             [ctx.getHandler(), ctx.getClass()],
         );
-        return skip ? true : super.canActivate(ctx);
+        
+        if (skip) {
+            return true;
+        }
+        
+        return super.canActivate(ctx);
     }
-}
+} 

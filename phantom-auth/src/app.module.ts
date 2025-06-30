@@ -2,6 +2,8 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthModule } from './auth/auth.module';
+import { GlobalJwtAuthGuard } from './common/guards/global-jwt-auth.guard';
+import { TestController } from './test.controller';
 
 @Module({
   imports: [
@@ -17,5 +19,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     AuthModule,                                 // важливо: вже після JwtModule
   ],
+  controllers: [TestController],
+  providers: [GlobalJwtAuthGuard],
 })
 export class AppModule {}
