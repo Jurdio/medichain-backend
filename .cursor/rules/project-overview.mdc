@@ -1,0 +1,19 @@
+---
+description: "This document provides a general overview of the project."
+alwaysApply: true
+---
+This document provides a general overview of the project.
+
+# Project Overview: Medical Admin Panel (Backend)
+
+**Purpose:** This backend serves as the administrative panel for managing medical data and processes.
+
+**Core Technology:** Developed using **NestJS** (a Node.js framework) and **TypeScript** to build scalable and efficient server-side applications.
+
+**Key Integrations & Technologies:**
+*   **Privy:** Utilized for decentralized user identification and authentication, ensuring secure access to the system.
+*   **IPFS (InterPlanetary File System):** Employed for decentralized data storage, providing resilience, accessibility, and censorship resistance for medical records and other critical files.
+*   **Solana:** Integrated with the Solana blockchain for handling transactions, managing digital assets, or leveraging smart contracts related to medical processes.
+*   **Metaplex (potential):** If the project involves managing NFTs (e.g., for representing medical records, certificates, or other unique digital assets), Metaplex will be used on the Solana blockchain.
+
+**General Structure:** The project adheres to NestJS's modular architecture, separating functionality into distinct modules (e.g., `AuthModule`, `PatientsModule`, `RecordsModule`), each containing controllers (for handling HTTP requests), services (for business logic), and data providers.
