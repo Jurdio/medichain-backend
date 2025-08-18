@@ -13,7 +13,9 @@ export class ProtectService {
     // This is a placeholder. In a real application, you would upload the file
     // and metadata to a decentralized storage solution.
     const metadataUrl = `https://arweave.net/some-placeholder-tx-id-for-${file.originalname}`;
-    const nftName = `Certificate for ${createCertificateDto.patientEmail}`;
+    const patientEmailPrefix = createCertificateDto.patientEmail.substring(0, 10);
+    const certificateTitle = createCertificateDto.title ? createCertificateDto.title.substring(0, 15) : '';
+    const nftName = `Cert - ${patientEmailPrefix}...${certificateTitle ? ' - ' + certificateTitle + '...' : ''}`.substring(0, 32);
 
     // 2. Mint the NFT
     const nftAddress = await this.nftService.mintNft(
