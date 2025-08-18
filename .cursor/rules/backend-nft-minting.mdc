@@ -30,14 +30,21 @@ This document outlines the architecture and workflow for minting NFTs on the Sol
 
 5.  **API Integration (`src/protect/`)**:
     *   **Endpoint**: The `ProtectController` exposes the `POST /protect/create-certificate` endpoint.
-    *   **Data Handling**: The endpoint is configured to accept `multipart/form-data`, including a file upload (`file`) and body fields (`email`, `walletAddress`). The `CreateCertificateDto` defines the structure for the body.
-    *   **Service Logic**: The `ProtectService` orchestrates the process. It receives the data from the controller, constructs a placeholder metadata URL, and calls `nftService.mintNft` to mint the token for the user.
-
+    *   **Data Handling**: The endpoint is configured to accept `multipart/form-data`, including a file upload (`attachments`) and body fields (`patientEmail`, `manualWallet`, `certificateType`, `title`, `description`, `issueDate`). The `CreateCertificateDto` defines the structure for the body. Note that the `attachments` field is defined in the DTO as optional to prevent validation errors from `ValidationPipe`, even though the file itself is handled by `FileInterceptor`.
+    *   **Service Logic**: The `ProtectService` orchestrates the process. It receives the data from the controller, constructs a placeholder metadata URL, and calls `nftService.mintNft` to mint the token for the user. The `nftName` is generated to be short (`Cert - <patientEmailPrefix>...<certificateTitle>...`), adhering to the 32-character limit of the Solana Token Metadata program. The recipient's wallet (`manualWallet`) must have a small amount of SOL for rent exemption for the associated token account.
+    
 #### End-to-End Workflow
 
-1.  A client sends a `POST` request to the `/protect/create-certificate` endpoint. The request payload is `multipart/form-data` and includes `email`, `walletAddress`, and a `file`.
+1.  A client sends a `POST` request to the `/protect/create-certificate` endpoint. The request payload is `multipart/form-data` and includes `patientEmail`, `manualWallet`, `certificateType`, `title`, `description`, `issueDate`, and `attachments`.
 2.  The `ProtectController` receives the request and passes the data to the `ProtectService`.
-3.  The `ProtectService` prepares the necessary parameters for the NFT, including a name and a (currently placeholder) metadata URL.
-4.  It then calls the `mintNft` method in the `NftService`, providing the user's wallet address and the NFT details.
+3.  The `ProtectService` prepares the necessary parameters for the NFT, including a name (shortened for Solana metadata limits) and a (currently placeholder) metadata URL.
+4.  It then calls the `mintNft` method in the `NftService`, providing the user's wallet address (`manualWallet`) and the NFT details.
 5.  The `NftService` uses the pre-configured technical wallet to sign and pay for the transaction, creating the NFT and transferring it to the user's wallet on the Solana devnet.
 6.  The on-chain address of the newly minted NFT is returned in the API response.
+
+#### Common Issues & Troubleshooting
+
+*   **`"Unexpected field"` Error**: This typically means the field name sent by the client (e.g., `attachments`) does not match the one expected by `FileInterceptor` in the controller. Ensure they are identical.
+*   **`"property should not exist"` Error**: All fields sent in the request body must be defined in the corresponding DTO. If a field is not recognized, NestJS's `ValidationPipe` will throw this error (if `whitelist` is true).
+*   **`"Attempt to debit an account but found no record of a prior credit."` Error**: This Solana error indicates that the **recipient's wallet** does not have enough SOL to cover the rent-exempt minimum for the new token account. It must be funded with a small amount of SOL.
+*   **`"Name too long"` Error**: The name provided for the NFT exceeds the 32-character limit imposed by the Solana Token Metadata program. Ensure the generated name is shortened before calling `mintNft`.
