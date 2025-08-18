@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import {
   Metaplex,
   keypairIdentity,
-  bundlrStorage,
+  irysStorage,
 } from '@metaplex-foundation/js';
 import { Connection, Keypair, PublicKey } from '@solana/web3.js';
 import * as bs58 from 'bs58';
@@ -28,8 +28,8 @@ export class NftService {
     this.metaplex = Metaplex.make(this.connection)
       .use(keypairIdentity(this.technicalWallet))
       .use(
-        bundlrStorage({
-          address: 'https://devnet.bundlr.network',
+        irysStorage({
+          address: 'https://devnet.irys.xyz',
           providerUrl: rpcUrl,
           timeout: 60000,
         }),
