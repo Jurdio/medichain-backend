@@ -1,20 +1,65 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsDateString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCertificateDto {
   @ApiProperty({
-    description: 'Email of the user',
-    example: 'user@example.com',
+    description: 'Email of the patient',
+    example: 'patient@example.com',
   })
   @IsEmail()
   @IsNotEmpty()
-  email: string;
+  patientEmail: string;
 
   @ApiProperty({
-    description: 'Wallet address of the user',
-    example: '5x...yZ',
+    description: 'Manual wallet address of the user',
+    example: '6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq',
   })
   @IsString()
   @IsNotEmpty()
-  walletAddress: string;
+  manualWallet: string;
+
+  @ApiProperty({
+    description: 'Optional attachments related to the certificate',
+    type: 'string',
+    format: 'binary',
+    required: false,
+  })
+  @IsOptional()
+  attachments?: any;
+
+  @ApiProperty({
+    description: 'Type of certificate',
+    example: 'Medical Certificate',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  certificateType?: string;
+
+  @ApiProperty({
+    description: 'Title of the certificate',
+    example: 'Health Certificate',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @ApiProperty({
+    description: 'Description of the certificate',
+    example: 'This certificate confirms the patient\'s health status.',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @ApiProperty({
+    description: 'Issue date of the certificate',
+    example: '2023-10-27',
+    required: false,
+  })
+  @IsOptional()
+  @IsDateString()
+  issueDate?: string;
 }

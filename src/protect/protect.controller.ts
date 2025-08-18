@@ -12,7 +12,7 @@ export class ProtectController {
 
   @Post('/create-certificate')
   @UseInterceptors(
-    FileInterceptor('file', {
+    FileInterceptor('attachments', {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
