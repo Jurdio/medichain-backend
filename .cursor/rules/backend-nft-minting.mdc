@@ -1,0 +1,34 @@
+### Backend NFT Minting Workflow with Metaplex
+
+This document outlines the architecture and workflow for minting NFTs on the Solana devnet in response to an API request within this NestJS backend.
+
+#### Core Components & Logic
+
+1.  **Dependencies**:
+    *   `@metaplex-foundation/js`: The primary library for interacting with the Metaplex protocol to handle NFT creation.
+    *   `@solana/web3.js`: Used for fundamental interactions with the Solana blockchain.
+    *   `@nestjs/config`: Manages environment variables, which is crucial for securely handling wallet credentials.
+
+2.  **Technical Wallet for Transactions**:
+    *   **Generation**: A new Solana wallet, which pays for the minting transaction fees, is generated using a dedicated script. This is executed by running `npm run generate-wallet`.
+    *   **Configuration**: The script creates/updates the `.env` file with `WALLET_PUBLIC_KEY` and `WALLET_SECRET_KEY`. This file is listed in `.gitignore` to prevent secret keys from being committed to the repository.
+    *   **Funding**: This wallet must be funded with devnet SOL from a faucet (e.g., https://solfaucet.com/) to cover transaction costs.
+
+3.  **`NftService` (`src/nft/nft.service.ts`)**:
+    *   **Purpose**: This service centralizes all NFT-related logic.
+    *   **Initialization**: It reads the `WALLET_SECRET_KEY` from the environment variables to create a `Keypair` for the technical wallet. It then initializes a `Metaplex` instance configured to use this wallet and connect to the Solana devnet.
+    *   **Functionality**: It exposes a `mintNft` method that takes the recipient's wallet address, a metadata URL, and a name for the NFT, then executes the minting process.
+
+4.  **API Integration (`src/protect/`)**:
+    *   **Endpoint**: The `ProtectController` exposes the `POST /protect/create-certificate` endpoint.
+    *   **Data Handling**: The endpoint is configured to accept `multipart/form-data`, including a file upload (`file`) and body fields (`email`, `walletAddress`). The `CreateCertificateDto` defines the structure for the body.
+    *   **Service Logic**: The `ProtectService` orchestrates the process. It receives the data from the controller, constructs a placeholder metadata URL, and calls `nftService.mintNft` to mint the token for the user.
+
+#### End-to-End Workflow
+
+1.  A client sends a `POST` request to the `/protect/create-certificate` endpoint. The request payload is `multipart/form-data` and includes `email`, `walletAddress`, and a `file`.
+2.  The `ProtectController` receives the request and passes the data to the `ProtectService`.
+3.  The `ProtectService` prepares the necessary parameters for the NFT, including a name and a (currently placeholder) metadata URL.
+4.  It then calls the `mintNft` method in the `NftService`, providing the user's wallet address and the NFT details.
+5.  The `NftService` uses the pre-configured technical wallet to sign and pay for the transaction, creating the NFT and transferring it to the user's wallet on the Solana devnet.
+6.  The on-chain address of the newly minted NFT is returned in the API response.
