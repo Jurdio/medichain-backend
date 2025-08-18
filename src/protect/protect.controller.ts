@@ -10,9 +10,9 @@ import { extname } from 'path';
 export class ProtectController {
   constructor(private readonly protectService: ProtectService) {}
 
-  @Post('/issue')
+  @Post('/create-certificate')
   @UseInterceptors(
-    FileInterceptor('attachments', {
+    FileInterceptor('file', {
       storage: diskStorage({
         destination: './uploads',
         filename: (req, file, cb) => {
@@ -23,10 +23,10 @@ export class ProtectController {
       }),
     }),
   )
-  async issueCertificate(
+  async createCertificate(
     @UploadedFile() file: Express.Multer.File,
     @Body() createCertificateDto: CreateCertificateDto,
   ) {
-    return this.protectService.issueCertificate(createCertificateDto, file);
+    return this.protectService.createCertificate(createCertificateDto, file);
   }
 }

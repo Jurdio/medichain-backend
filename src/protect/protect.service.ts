@@ -1,15 +1,37 @@
 import { Injectable } from '@nestjs/common';
 import { CreateCertificateDto } from './dto/create-certificate.dto/create-certificate.dto';
+import { NftService } from '../nft/nft.service';
 
 @Injectable()
 export class ProtectService {
-  async issueCertificate(
+  constructor(private readonly nftService: NftService) {}
+  async createCertificate(
     createCertificateDto: CreateCertificateDto,
     file: Express.Multer.File,
   ) {
-    console.log('Received DTO:', createCertificateDto);
-    console.log('Received file:', file);
-    // Implement your logic here: save to DB, upload to IPFS, interact with Solana, etc.
-    return { message: 'Certificate issuance initiated', data: createCertificateDto, file: file.originalname };
+    // 1. Upload file to IPFS/Arweave to get metadata URL
+    // This is a placeholder. In a real application, you would upload the file
+    // and metadata to a decentralized storage solution.
+    const metadataUrl = `https://arweave.net/some-placeholder-tx-id-for-${file.originalname}`;
+    const nftName = `Certificate for ${createCertificateDto.email}`;
+
+    // 2. Mint the NFT
+    const nftAddress = await this.nftService.mintNft(
+      createCertificateDto.walletAddress,
+      metadataUrl,
+      nftName,
+    );
+
+    // 3. Optionally, save the certificate data and NFT address to your database
+    console.log('Certificate created for:', createCertificateDto);
+    console.log('File:', file.originalname);
+    console.log('NFT Address:', nftAddress);
+
+    return {
+      message: 'Certificate created and NFT minted successfully',
+      nftAddress,
+      data: createCertificateDto,
+      file: file.originalname,
+    };
   }
 }
