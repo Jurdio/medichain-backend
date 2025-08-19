@@ -40,19 +40,24 @@ export class NftService {
     recipientAddress: string,
     metadataUrl: string,
     name: string,
-  ): Promise<string> {
+  ): Promise<{ nftAddress: string; signature: string }> {
     try {
       const recipientPublicKey = new PublicKey(recipientAddress);
 
-      const { nft } = await this.metaplex.nfts().create({
+      const result = await this.metaplex.nfts().create({
         uri: metadataUrl,
         name: name,
         sellerFeeBasisPoints: 500, // 5%
         tokenOwner: recipientPublicKey,
       });
 
-      console.log(`Successfully minted NFT: ${nft.address.toBase58()}`);
-      return nft.address.toBase58();
+      console.log(`Successfully minted NFT: ${result.nft.address.toBase58()}`);
+      console.log(`Transaction signature: ${result.response.signature}`);
+      
+      return {
+        nftAddress: result.nft.address.toBase58(),
+        signature: result.response.signature,
+      };
     } catch (error) {
       console.error('Error minting NFT:', error);
       throw new Error('Failed to mint NFT.');

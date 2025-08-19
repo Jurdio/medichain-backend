@@ -1,9 +1,11 @@
 import { Module } from '@nestjs/common';
 import { MulterModule } from '@nestjs/platform-express';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ProtectModule } from './protect/protect.module';
+import { HistoryModule } from './history/history.module';
 import { HashingService } from './common/hashing/hashing.service';
 import { SignerService } from './common/signer/signer.service';
 import { SolanaService } from './common/solana/solana.service';
@@ -16,7 +18,22 @@ import { NftModule } from './nft/nft.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        type: 'postgres',
+        host: configService.get<string>('DB_HOST'),
+        port: configService.get<number>('DB_PORT'),
+        username: configService.get<string>('DB_USERNAME'),
+        password: configService.get<string>('DB_PASSWORD'),
+        database: configService.get<string>('DB_DATABASE'),
+        autoLoadEntities: true,
+        synchronize: true, // Be careful with this in production
+      }),
+    }),
     ProtectModule,
+    HistoryModule,
     MulterModule.register({
       dest: './uploads', // Specify the destination folder for uploaded files
     }),

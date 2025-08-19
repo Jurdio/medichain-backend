@@ -3,6 +3,14 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateCertificateDto {
   @ApiProperty({
+    description: 'Wallet address of the doctor issuing the certificate',
+    example: '6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq',
+  })
+  @IsString()
+  @IsNotEmpty()
+  doctorWalletAddress: string;
+
+  @ApiProperty({
     description: 'Email of the patient',
     example: 'patient@example.com',
   })
