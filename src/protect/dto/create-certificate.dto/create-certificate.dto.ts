@@ -21,10 +21,11 @@ export class CreateCertificateDto {
   @ApiProperty({
     description: 'Manual wallet address of the user',
     example: '6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq',
+    required: false,
   })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  manualWallet: string;
+  manualWallet?: string;
 
   @ApiProperty({
     description: 'Optional attachments related to the certificate',

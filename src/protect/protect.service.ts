@@ -22,8 +22,9 @@ export class ProtectService {
     const nftName = `Cert - ${patientEmailPrefix}...${certificateTitle ? ' - ' + certificateTitle + '...' : ''}`.substring(0, 32);
 
     // 2. Mint the NFT
+    const recipientWallet = createCertificateDto.manualWallet ?? createCertificateDto.doctorWalletAddress;
     const { nftAddress, signature } = await this.nftService.mintNft(
-      createCertificateDto.manualWallet,
+      recipientWallet,
       metadataUrl,
       nftName,
     );
@@ -33,7 +34,7 @@ export class ProtectService {
       transactionSignature: signature,
       nftMintAddress: nftAddress,
       doctorWalletAddress: createCertificateDto.doctorWalletAddress,
-      patientWalletAddress: createCertificateDto.manualWallet,
+      patientWalletAddress: recipientWallet,
     });
 
     // 3. Optionally, save the certificate data and NFT address to your database
