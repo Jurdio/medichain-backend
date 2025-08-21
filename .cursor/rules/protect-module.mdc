@@ -6,6 +6,10 @@ alwaysApply: false
 ### Огляд
 - **Призначення:** Видача сертифікатів (мінт NFT) та збереження історії транзакцій.
 - **Маршрут модуля:** `@Controller('protect')`
+- **Ключова логіка отримувача NFT:**
+  - Якщо в запиті є `manualWallet` — мінтимо на нього (має бути Solana-адреса).
+  - Якщо `manualWallet` немає — шукаємо Solana-гаманець користувача через Privy за `patientEmail`.
+  - Якщо Solana-гаманець не знайдено — повертаємо `404 Wallet not found by email`.
 
 ### Ендпоінти
 - `POST /protect/create-certificate`
@@ -15,7 +19,7 @@ alwaysApply: false
     - Тіло (DTO `CreateCertificateDto`):
       - `doctorWalletAddress` (string, required)
       - `patientEmail` (email, required)
-      - `manualWallet` (string, required)
+      - `manualWallet` (string, optional; Solana-адреса, якщо передано)
       - `certificateType` (string, optional)
       - `title` (string, optional)
       - `description` (string, optional)
@@ -24,17 +28,31 @@ alwaysApply: false
 
 ### Потік виконання (service)
 1. Формується `metadataUrl` для файлу (тимчасовий плейсхолдер; у проді — IPFS/Arweave).
-2. Мінт NFT через `NftService.mintNft(manualWallet, metadataUrl, nftName)`.
-3. Збереження історії через `HistoryService.create({...})` з `doctorWalletAddress`, `patientWalletAddress`, `nftMintAddress`, `transactionSignature`.
-4. Повернення результату клієнту.
+2. Визначення отримувача:
+   - Якщо `manualWallet` присутній — використовуємо його.
+   - Інакше виконуємо пошук через `PrivyService.getPrimaryWalletByEmail(patientEmail)`:
+     - Підтримується декілька форм повернення SDK (`users[]` або `{ users: [...] }`, детальний `getUser(id)`),
+       з урахуванням полів `linkedAccounts/linked_accounts`, `wallet(s)/smartWallet`, `embeddedWallets/embedded_wallets`, `accounts`.
+     - Вибираємо лише Solana-гаманець. Якщо не знайдено — кидаємо `NotFoundException('Wallet not found by email')`.
+3. Мінт NFT через `NftService.mintNft(resolvedWallet, metadataUrl, nftName)`.
+4. Збереження історії через `HistoryService.create({...})` з `doctorWalletAddress`, `patientWalletAddress=resolvedWallet`, `nftMintAddress`, `transactionSignature`.
+5. Повернення результату клієнту.
 
 ### Валідація та документація
 - DTO `CreateCertificateDto` з `class-validator`/`class-transformer` та `@nestjs/swagger` (`@ApiProperty`).
+  - `manualWallet` — `@IsOptional() @IsString()`; `@ApiProperty({ required: false })`.
 - Файл обробляється через `@UseInterceptors(FileInterceptor('attachments', diskStorage(...)))`.
 
 ### Нотатки з безпеки та зберігання
 - У прод середовищі: зберігати файли у S3/IPFS/Arweave; не тримати у локальній ФС.
 - Валідація типів файлів і розміру повинна бути додана перед продом.
+
+### Мережа та інтеграції
+- Мінтинг виконується у мережі, налаштованій через `SOLANA_RPC_URL` (за замовчуванням devnet).
+- Приймаємо лише Solana-адреси (для `manualWallet` і адрес з Privy).
+- Адреса отримувача має мати достатньо SOL для rent-exempt мінту асоційованого акаунта токена.
+- Для інтеграції з Privy необхідні змінні оточення: `PRIVY_APP_ID`, `PRIVY_APP_SECRET`.
+- Логи (`Nest Logger`) фіксують кроки пошуку гаманця у Privy (форма відповіді, кількість користувачів, нормалізовані гаманці, вибір Solana-адреси).
 
 ### Приклади запитів
 ```bash
@@ -42,8 +60,24 @@ curl -X POST 'http://localhost:3000/protect/create-certificate' \
   -H 'Accept: application/json' \
   -F 'doctorWalletAddress=6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq' \
   -F 'patientEmail=patient@example.com' \
-  -F 'manualWallet=6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq' \
   -F 'title=Health Certificate' \
   -F 'attachments=@/path/to/file.pdf'
 ```
+
+Альтернатива з ручною адресою:
+```bash
+curl -X POST 'http://localhost:3000/protect/create-certificate' \
+  -H 'Accept: application/json' \
+  -F 'doctorWalletAddress=6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq' \
+  -F 'patientEmail=patient@example.com' \
+  -F 'manualWallet=CJkiCzp8qAxkPaNyvPuR6HGZmcSimcLBbkoVsJeEXEMq' \
+  -F 'title=Health Certificate' \
+  -F 'attachments=@/path/to/file.pdf'
+```
+
+### Обробка помилок та типові проблеми
+- `404 Wallet not found by email` — у Privy не знайдено Solana-гаманця для `patientEmail` і `manualWallet` не передано.
+- `"Unexpected field"` — назва поля файлу в запиті не збігається з `FileInterceptor('attachments', ...)`.
+- `Attempt to debit an account but found no record of a prior credit` — у гаманця отримувача недостатньо SOL для rent-exempt.
+- `Name too long` — назва NFT перевищує 32 символи; в `ProtectService` назва скорочується.
 
