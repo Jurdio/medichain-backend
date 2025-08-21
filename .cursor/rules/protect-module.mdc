@@ -1,0 +1,49 @@
+---
+alwaysApply: false
+---
+## Правила для ProtectModule (сертифікати)
+
+### Огляд
+- **Призначення:** Видача сертифікатів (мінт NFT) та збереження історії транзакцій.
+- **Маршрут модуля:** `@Controller('protect')`
+
+### Ендпоінти
+- `POST /protect/create-certificate`
+  - Формат: `multipart/form-data`
+  - Поля:
+    - `attachments` — файл (binary), опційно; зберігається локально в `./uploads` з унікальним ім’ям (`diskStorage`, `uuid` + розширення).
+    - Тіло (DTO `CreateCertificateDto`):
+      - `doctorWalletAddress` (string, required)
+      - `patientEmail` (email, required)
+      - `manualWallet` (string, required)
+      - `certificateType` (string, optional)
+      - `title` (string, optional)
+      - `description` (string, optional)
+      - `issueDate` (date string, optional)
+  - Відповідь: `{ message, nftAddress, transactionSignature, data, file }`
+
+### Потік виконання (service)
+1. Формується `metadataUrl` для файлу (тимчасовий плейсхолдер; у проді — IPFS/Arweave).
+2. Мінт NFT через `NftService.mintNft(manualWallet, metadataUrl, nftName)`.
+3. Збереження історії через `HistoryService.create({...})` з `doctorWalletAddress`, `patientWalletAddress`, `nftMintAddress`, `transactionSignature`.
+4. Повернення результату клієнту.
+
+### Валідація та документація
+- DTO `CreateCertificateDto` з `class-validator`/`class-transformer` та `@nestjs/swagger` (`@ApiProperty`).
+- Файл обробляється через `@UseInterceptors(FileInterceptor('attachments', diskStorage(...)))`.
+
+### Нотатки з безпеки та зберігання
+- У прод середовищі: зберігати файли у S3/IPFS/Arweave; не тримати у локальній ФС.
+- Валідація типів файлів і розміру повинна бути додана перед продом.
+
+### Приклади запитів
+```bash
+curl -X POST 'http://localhost:3000/protect/create-certificate' \
+  -H 'Accept: application/json' \
+  -F 'doctorWalletAddress=6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq' \
+  -F 'patientEmail=patient@example.com' \
+  -F 'manualWallet=6vdaANCiHoDVSidCWddiAwHqGDKUZDCuVHeJ1AqD9NMq' \
+  -F 'title=Health Certificate' \
+  -F 'attachments=@/path/to/file.pdf'
+```
+
