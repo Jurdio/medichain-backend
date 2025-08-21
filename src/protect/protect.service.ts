@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCertificateDto } from './dto/create-certificate.dto/create-certificate.dto';
 import { NftService } from '../nft/nft.service';
+import { PrivyService } from '../common/privy/privy.service';
 import { HistoryService } from '../history/history.service';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class ProtectService {
   constructor(
     private readonly nftService: NftService,
     private readonly historyService: HistoryService,
+    private readonly privyService: PrivyService,
   ) {}
   async createCertificate(
     createCertificateDto: CreateCertificateDto,
@@ -22,7 +24,14 @@ export class ProtectService {
     const nftName = `Cert - ${patientEmailPrefix}...${certificateTitle ? ' - ' + certificateTitle + '...' : ''}`.substring(0, 32);
 
     // 2. Mint the NFT
-    const recipientWallet = createCertificateDto.manualWallet ?? createCertificateDto.doctorWalletAddress;
+    let recipientWallet = createCertificateDto.manualWallet ?? null;
+    if (!recipientWallet) {
+      // Try resolving via Privy by patient email
+      recipientWallet = (await this.privyService.getPrimaryWalletByEmail(createCertificateDto.patientEmail)) ?? null;
+    }
+    if (!recipientWallet) {
+      throw new NotFoundException('Wallet not found by email');
+    }
     const { nftAddress, signature } = await this.nftService.mintNft(
       recipientWallet,
       metadataUrl,
