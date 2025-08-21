@@ -11,6 +11,7 @@ import { SignerService } from './common/signer/signer.service';
 import { SolanaService } from './common/solana/solana.service';
 import { PrivyService } from './common/privy/privy.service';
 import { NftModule } from './nft/nft.module';
+import { VerifyModule } from './verify/verify.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { NftModule } from './nft/nft.module';
       dest: './uploads', // Specify the destination folder for uploaded files
     }),
     NftModule,
+    VerifyModule,
   ],
   controllers: [AppController],
   providers: [

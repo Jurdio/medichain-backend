@@ -36,6 +36,23 @@ export class NftService {
       );
   }
 
+  getConnection(): Connection {
+    return this.connection;
+  }
+
+  getMetaplexInstance(): Metaplex {
+    return this.metaplex;
+  }
+
+  getNetwork(): 'devnet' | 'mainnet-beta' | 'testnet' | 'custom' {
+    const rpcUrl = this.configService.get<string>('SOLANA_RPC_URL');
+    if (!rpcUrl) return 'custom'; // Default or handle error
+    if (rpcUrl.includes('devnet')) return 'devnet';
+    if (rpcUrl.includes('mainnet-beta')) return 'mainnet-beta';
+    if (rpcUrl.includes('testnet')) return 'testnet';
+    return 'custom';
+  }
+
   async mintNft(
     recipientAddress: string,
     metadataUrl: string,
