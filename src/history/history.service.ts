@@ -16,10 +16,30 @@ export class HistoryService {
     return this.historyRepository.save(historyEntry);
   }
 
-  findAllByDoctor(doctorWalletAddress: string) {
-    return this.historyRepository.find({
+  async findAllByDoctor(
+    doctorWalletAddress: string,
+    page: number,
+    limit: number,
+  ) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await this.historyRepository.findAndCount({
       where: { doctorWalletAddress },
       order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
     });
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        perPage: limit,
+        totalPages,
+        currentPage: page,
+      },
+    };
   }
 }
