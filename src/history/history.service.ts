@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, FindOptionsWhere, Repository } from 'typeorm';
 import { History } from './entities/history.entity';
 import { CreateHistoryDto } from './dto/create-history.dto';
 
@@ -20,10 +20,20 @@ export class HistoryService {
     doctorWalletAddress: string,
     page: number,
     limit: number,
+    fromDate?: Date,
+    toDate?: Date,
   ) {
     const skip = (page - 1) * limit;
+    const where: FindOptionsWhere<History> = { doctorWalletAddress };
+
+    if (fromDate || toDate) {
+      const from = fromDate ?? new Date(0);
+      const to = toDate ?? new Date();
+      where.createdAt = Between(from, to);
+    }
+
     const [items, total] = await this.historyRepository.findAndCount({
-      where: { doctorWalletAddress },
+      where,
       order: { createdAt: 'DESC' },
       skip,
       take: limit,

@@ -1,6 +1,6 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, Min } from 'class-validator';
+import { IsDate, IsIn, IsInt, IsOptional, Min } from 'class-validator';
 
 export class PaginationQueryDto {
   @ApiPropertyOptional({ description: 'Page number (1-based)', default: 1, minimum: 1 })
@@ -16,6 +16,18 @@ export class PaginationQueryDto {
   @IsIn([10, 50, 100])
   @IsOptional()
   limit?: number = 10;
+
+  @ApiPropertyOptional({ description: 'Filter from date (inclusive)', type: String, format: 'date-time', example: '2024-01-01T00:00:00.000Z' })
+  @Type(() => Date)
+  @IsDate()
+  @IsOptional()
+  fromDate?: Date;
+
+  @ApiPropertyOptional({ description: 'Filter to date (inclusive)', type: String, format: 'date-time', example: '2024-12-31T23:59:59.999Z' })
+  @Type(() => Date)
+  @IsDate()
+  @IsOptional()
+  toDate?: Date;
 }
 
 
