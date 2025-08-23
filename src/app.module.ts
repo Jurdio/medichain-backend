@@ -12,6 +12,7 @@ import { SolanaService } from './common/solana/solana.service';
 import { PrivyService } from './common/privy/privy.service';
 import { NftModule } from './nft/nft.module';
 import { VerifyModule } from './verify/verify.module';
+import { DoctorsModule } from './doctors/doctors.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { VerifyModule } from './verify/verify.module';
     }),
     NftModule,
     VerifyModule,
+    DoctorsModule,
   ],
   controllers: [AppController],
   providers: [
