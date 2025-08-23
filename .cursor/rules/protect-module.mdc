@@ -10,6 +10,7 @@ alwaysApply: false
   - Якщо в запиті є `manualWallet` — мінтимо на нього (має бути Solana-адреса).
   - Якщо `manualWallet` немає — шукаємо Solana-гаманець користувача через Privy за `patientEmail`.
   - Якщо Solana-гаманець не знайдено — повертаємо `404 Wallet not found by email`.
+  - Метадата NFT не містить PII, вкладень або email.
 
 ### Ендпоінти
 - `POST /protect/create-certificate`
@@ -27,21 +28,24 @@ alwaysApply: false
   - Відповідь: `{ message, nftAddress, transactionSignature, data, file }`
 
 ### Потік виконання (service)
-1. Формується `metadataUrl` для файлу (тимчасовий плейсхолдер; у проді — IPFS/Arweave).
-2. Визначення отримувача:
+1. Формуємо мінімальну JSON-метадату (без файлів, email, title/description):
+   - `name: 'MediCert'`
+   - `symbol: 'MEDICERT'`
+   - `seller_fee_basis_points: 0` (роялті вимкнені)
+   - `attributes`: `certificate_type` (з DTO), `issue_date` (ISO, якщо є), `network` (з `NftService.getNetwork()`), `version: '1.0'`
+   Завантажуємо JSON через `NftService.uploadJsonMetadata` (Irys → Arweave) та отримуємо `metadataUrl`.
+   Примітка: відповідь API не блокується очікуванням доступності gateway; у фоні запускається діагностичний пробінг URI по кількох gateway.
+2. Визначаємо отримувача:
    - Якщо `manualWallet` присутній — використовуємо його.
-   - Інакше виконуємо пошук через `PrivyService.getPrimaryWalletByEmail(patientEmail)`:
-     - Підтримується декілька форм повернення SDK (`users[]` або `{ users: [...] }`, детальний `getUser(id)`),
-       з урахуванням полів `linkedAccounts/linked_accounts`, `wallet(s)/smartWallet`, `embeddedWallets/embedded_wallets`, `accounts`.
-     - Вибираємо лише Solana-гаманець. Якщо не знайдено — кидаємо `NotFoundException('Wallet not found by email')`.
-3. Мінт NFT через `NftService.mintNft(resolvedWallet, metadataUrl, nftName)`.
-4. Збереження історії через `HistoryService.create({...})` з `doctorWalletAddress`, `patientWalletAddress=resolvedWallet`, `nftMintAddress`, `transactionSignature`.
-5. Повернення результату клієнту.
+   - Інакше виконуємо пошук через `PrivyService.getPrimaryWalletByEmail(patientEmail)`; якщо не знайдено — `NotFoundException('Wallet not found by email')`.
+3. Мінтимо NFT: `NftService.mintNft(resolvedWallet, metadataUrl, 'MediCert', 0)`.
+4. Зберігаємо історію: `HistoryService.create({...})` з `doctorWalletAddress`, `patientWalletAddress=resolvedWallet`, `nftMintAddress`, `transactionSignature`.
+5. Повертаємо `{ message, nftAddress, transactionSignature, data, file }` (де `file` — `file?.originalname`, якщо був аплоуд; у метадату файл не включається).
 
 ### Валідація та документація
 - DTO `CreateCertificateDto` з `class-validator`/`class-transformer` та `@nestjs/swagger` (`@ApiProperty`).
   - `manualWallet` — `@IsOptional() @IsString()`; `@ApiProperty({ required: false })`.
-- Файл обробляється через `@UseInterceptors(FileInterceptor('attachments', diskStorage(...)))`.
+- Файл обробляється через `@UseInterceptors(FileInterceptor('attachments', diskStorage(...)))`, зберігається локально в `./uploads`; наразі у метадату NFT не включається.
 
 ### Нотатки з безпеки та зберігання
 - У прод середовищі: зберігати файли у S3/IPFS/Arweave; не тримати у локальній ФС.
@@ -53,6 +57,14 @@ alwaysApply: false
 - Адреса отримувача має мати достатньо SOL для rent-exempt мінту асоційованого акаунта токена.
 - Для інтеграції з Privy необхідні змінні оточення: `PRIVY_APP_ID`, `PRIVY_APP_SECRET`.
 - Логи (`Nest Logger`) фіксують кроки пошуку гаманця у Privy (форма відповіді, кількість користувачів, нормалізовані гаманці, вибір Solana-адреси).
+ - Зберігання метадати: через Irys (ex-Bundlr) → Arweave (`irysStorage` у Metaplex). URI може стати доступним на різних gateway неодночасно: `https://devnet.irys.xyz/<txid>` часто швидше, ніж `https://arweave.net/<txid>`. Ми не чекаємо доступності у відповіді API; у фоні ведеться діагностичний пробінг.
+
+### Метадата NFT (мінімальна схема)
+- Публічні поля on-chain: `name`, `symbol` (необов’язково ончейн), `uri`, `sellerFeeBasisPoints=0`, `creators`/`updateAuthority` — від технічного гаманця.
+- Off-chain JSON за `uri` включає:
+  - `name: 'MediCert'`, `symbol: 'MEDICERT'`, `seller_fee_basis_points: 0`
+  - `attributes`: `certificate_type`, `issue_date?`, `network`, `version: '1.0'`
+  - Без email/PII/вкладень.
 
 ### Приклади запитів
 ```bash
@@ -80,4 +92,5 @@ curl -X POST 'http://localhost:3000/protect/create-certificate' \
 - `"Unexpected field"` — назва поля файлу в запиті не збігається з `FileInterceptor('attachments', ...)`.
 - `Attempt to debit an account but found no record of a prior credit` — у гаманця отримувача недостатньо SOL для rent-exempt.
 - `Name too long` — назва NFT перевищує 32 символи; в `ProtectService` назва скорочується.
+- Off-chain `uri` тимчасово недоступний на окремих gateway (Arweave/Irys) — це очікувано; UI має показувати стан “pending metadata” та/або використовувати кілька gateway з фолбеком.
 
