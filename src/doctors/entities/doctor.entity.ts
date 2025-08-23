@@ -22,6 +22,9 @@ export class Doctor {
   @Column({ type: 'varchar', length: 120, nullable: true })
   specialization?: string;
 
+  @Column({ type: 'boolean', default: false })
+  active: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

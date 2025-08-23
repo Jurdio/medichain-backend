@@ -69,7 +69,12 @@ export class DoctorsService {
   }
 
   async update(id: string, updateDoctorDto: UpdateDoctorDto) {
-    const preload = await this.doctorRepository.preload({ id, ...updateDoctorDto });
+    const { isActive, ...rest } = updateDoctorDto;
+    const mapped: Partial<Doctor> = { ...rest } as Partial<Doctor>;
+    if (typeof isActive === 'boolean') {
+      mapped.active = isActive;
+    }
+    const preload = await this.doctorRepository.preload({ id, ...mapped });
     if (!preload) {
       throw new NotFoundException('Doctor not found');
     }
