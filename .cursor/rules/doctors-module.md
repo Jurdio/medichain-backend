@@ -21,6 +21,7 @@
   - `walletAddress: varchar(100)` — required, unique, indexed
   - `phone?: varchar(20)` — optional
   - `specialization?: varchar(120)` — optional
+  - `active: boolean` — required, default `false`
   - `createdAt: timestamp` — auto
   - `updatedAt: timestamp` — auto
 
@@ -36,7 +37,8 @@
     - `walletAddress: string, 20..100`
     - `phone?: string` (basic phone regex allowed)
     - `specialization?: string, 2..120`
-  - Update: `PartialType(CreateDoctorDto)`
+  - Update: `PartialType(CreateDoctorDto)` plus
+    - `isActive?: boolean` — maps to entity field `active`
   - Query (pagination + filters):
     - `page? number >= 1` (default 1)
     - `limit? number` (default 10)
@@ -51,7 +53,7 @@
   - `create(dto)` → save entity
   - `findAll(query)` → `findAndCount` with pagination; `ILike` for `search` on `fullName`, `email`, `walletAddress`; order by `createdAt DESC`; returns `{ items, meta }`
   - `findOne(id)` → throws `NotFoundException` if missing
-  - `update(id, dto)` → `preload` + save; throws `NotFoundException` if missing
+  - `update(id, dto)` → map `dto.isActive` → `active`, then `preload` + save; throws `NotFoundException` if missing
   - `remove(id)` → delete after existence check
 
 ### 6. Controller & API
@@ -62,6 +64,7 @@
   - `GET /doctors` — list doctors with pagination/search
   - `GET /doctors/:id` — get doctor by id (UUID)
   - `PATCH /doctors/:id` — update doctor by id
+    - Body example to toggle activation: `{"isActive": true}`
   - `DELETE /doctors/:id` — delete doctor by id
 - Validation is automatic via global `ValidationPipe` and DTOs.
 - Swagger responses and params should be declared via `@ApiOperation`, `@ApiResponse`, `@ApiParam` where applicable.
