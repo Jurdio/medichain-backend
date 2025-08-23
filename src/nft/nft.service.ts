@@ -53,10 +53,21 @@ export class NftService {
     return 'custom';
   }
 
+  async uploadJsonMetadata(metadata: Record<string, unknown>): Promise<string> {
+    try {
+      const uri = await this.metaplex.storage().uploadJson(metadata);
+      return uri;
+    } catch (error) {
+      console.error('Error uploading JSON metadata:', error);
+      throw new Error('Failed to upload JSON metadata.');
+    }
+  }
+
   async mintNft(
     recipientAddress: string,
     metadataUrl: string,
     name: string,
+    sellerFeeBasisPoints: number = 0,
   ): Promise<{ nftAddress: string; signature: string }> {
     try {
       const recipientPublicKey = new PublicKey(recipientAddress);
@@ -64,7 +75,7 @@ export class NftService {
       const result = await this.metaplex.nfts().create({
         uri: metadataUrl,
         name: name,
-        sellerFeeBasisPoints: 500, // 5%
+        sellerFeeBasisPoints: sellerFeeBasisPoints,
         tokenOwner: recipientPublicKey,
       });
 

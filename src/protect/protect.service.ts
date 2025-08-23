@@ -15,13 +15,38 @@ export class ProtectService {
     createCertificateDto: CreateCertificateDto,
     file: Express.Multer.File,
   ) {
-    // 1. Upload file to IPFS/Arweave to get metadata URL
-    // This is a placeholder. In a real application, you would upload the file
-    // and metadata to a decentralized storage solution.
-    const metadataUrl = `https://arweave.net/some-placeholder-tx-id-for-${file.originalname}`;
-    const patientEmailPrefix = createCertificateDto.patientEmail.substring(0, 10);
-    const certificateTitle = createCertificateDto.title ? createCertificateDto.title.substring(0, 15) : '';
-    const nftName = `Cert - ${patientEmailPrefix}...${certificateTitle ? ' - ' + certificateTitle + '...' : ''}`.substring(0, 32);
+    // 1. Build minimal metadata JSON (no files, no email, no title/description)
+    const nftName = 'MediCert';
+    const network = this.nftService.getNetwork();
+    const metadata = {
+      name: nftName,
+      symbol: 'MEDICERT',
+      seller_fee_basis_points: 0,
+      attributes: [
+        {
+          trait_type: 'certificate_type',
+          value: createCertificateDto.certificateType ?? 'generic',
+        },
+        ...(createCertificateDto.issueDate
+          ? [
+              {
+                trait_type: 'issue_date',
+                value: createCertificateDto.issueDate,
+              },
+            ]
+          : []),
+        {
+          trait_type: 'network',
+          value: network,
+        },
+        {
+          trait_type: 'version',
+          value: '1.0',
+        },
+      ],
+    } as Record<string, unknown>;
+
+    const metadataUrl = await this.nftService.uploadJsonMetadata(metadata);
 
     // 2. Mint the NFT
     let recipientWallet = createCertificateDto.manualWallet ?? null;
@@ -36,6 +61,7 @@ export class ProtectService {
       recipientWallet,
       metadataUrl,
       nftName,
+      0,
     );
 
     // 3. Save the transaction to the history database
@@ -48,7 +74,6 @@ export class ProtectService {
 
     // 3. Optionally, save the certificate data and NFT address to your database
     console.log('Certificate created for:', createCertificateDto);
-    console.log('File:', file.originalname);
     console.log('NFT Address:', nftAddress);
 
     return {
@@ -56,7 +81,7 @@ export class ProtectService {
       nftAddress,
       transactionSignature: signature,
       data: createCertificateDto,
-      file: file.originalname,
+      file: file?.originalname,
     };
   }
 }
