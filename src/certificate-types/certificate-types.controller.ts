@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { CertificateTypesService } from './certificate-types.service';
 import { CreateCertificateTypeDto } from './dto/create-certificate-type.dto';
 import { UpdateCertificateTypeDto } from './dto/update-certificate-type.dto';
+import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
 
 @ApiTags('certificate-types')
 @Controller('certificate-types')
@@ -15,8 +16,8 @@ export class CertificateTypesController {
   }
 
   @Get()
-  findAll() {
-    return this.certificateTypesService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.certificateTypesService.findAll(query);
   }
 
   @Get(':id')

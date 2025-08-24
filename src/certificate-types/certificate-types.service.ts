@@ -5,6 +5,7 @@ import { CertificateType } from './entities/certificate-type.entity';
 import { CreateCertificateTypeDto } from './dto/create-certificate-type.dto';
 import { UpdateCertificateTypeDto } from './dto/update-certificate-type.dto';
 import { Direction } from '../directions/entities/direction.entity';
+import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
 
 @Injectable()
 export class CertificateTypesService {
@@ -25,8 +26,30 @@ export class CertificateTypesService {
     return this.certTypeRepo.save(entity);
   }
 
-  findAll() {
-    return this.certTypeRepo.find({ relations: { directions: true }, order: { createdAt: 'DESC' } });
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.certTypeRepo.findAndCount({
+      relations: { directions: true },
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        perPage: limit,
+        totalPages,
+        currentPage: page,
+      },
+    };
   }
 
   async findOne(id: string) {

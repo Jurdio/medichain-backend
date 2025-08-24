@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
 
 @Injectable()
 export class RolesService {
@@ -17,8 +18,29 @@ export class RolesService {
     return this.roleRepository.save(entity);
   }
 
-  findAll(): Promise<Role[]> {
-    return this.roleRepository.find({ order: { createdAt: 'DESC' } });
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.roleRepository.findAndCount({
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        perPage: limit,
+        totalPages,
+        currentPage: page,
+      },
+    };
   }
 
   async findOne(id: string): Promise<Role> {

@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { DirectionsService } from './directions.service';
 import { CreateDirectionDto } from './dto/create-direction.dto';
 import { UpdateDirectionDto } from './dto/update-direction.dto';
+import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
 
 @ApiTags('directions')
 @Controller('directions')
@@ -15,8 +16,8 @@ export class DirectionsController {
   }
 
   @Get()
-  findAll() {
-    return this.directionsService.findAll();
+  findAll(@Query() query: PaginationQueryDto) {
+    return this.directionsService.findAll(query);
   }
 
   @Get(':id')

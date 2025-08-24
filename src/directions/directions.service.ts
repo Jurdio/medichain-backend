@@ -5,6 +5,7 @@ import { Direction } from './entities/direction.entity';
 import { CreateDirectionDto } from './dto/create-direction.dto';
 import { UpdateDirectionDto } from './dto/update-direction.dto';
 import { CertificateType } from '../certificate-types/entities/certificate-type.entity';
+import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
 
 @Injectable()
 export class DirectionsService {
@@ -26,8 +27,30 @@ export class DirectionsService {
     return this.directionRepo.save(direction);
   }
 
-  findAll() {
-    return this.directionRepo.find({ relations: { certificateTypes: true }, order: { createdAt: 'DESC' } });
+  async findAll(query: PaginationQueryDto) {
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [items, total] = await this.directionRepo.findAndCount({
+      relations: { certificateTypes: true },
+      order: { createdAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const totalPages = Math.max(1, Math.ceil(total / limit));
+
+    return {
+      items,
+      meta: {
+        totalItems: total,
+        itemCount: items.length,
+        perPage: limit,
+        totalPages,
+        currentPage: page,
+      },
+    };
   }
 
   async findOne(id: string) {
