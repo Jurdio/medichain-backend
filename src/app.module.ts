@@ -14,6 +14,8 @@ import { NftModule } from './nft/nft.module';
 import { VerifyModule } from './verify/verify.module';
 import { DoctorsModule } from './doctors/doctors.module';
 import { RolesModule } from './roles/roles.module';
+import { DirectionsModule } from './directions/directions.module';
+import { CertificateTypesModule } from './certificate-types/certificate-types.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { RolesModule } from './roles/roles.module';
     VerifyModule,
     DoctorsModule,
     RolesModule,
+    DirectionsModule,
+    CertificateTypesModule,
   ],
   controllers: [AppController],
   providers: [
