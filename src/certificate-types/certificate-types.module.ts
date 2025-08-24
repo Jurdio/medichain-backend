@@ -6,7 +6,7 @@ import { CertificateType } from './entities/certificate-type.entity';
 import { Direction } from '../directions/entities/direction.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([CertificateType, Direction])],
+  imports: [TypeOrmModule.forFeature([CertificateType])],
   controllers: [CertificateTypesController],
   providers: [CertificateTypesService],
   exports: [CertificateTypesService],

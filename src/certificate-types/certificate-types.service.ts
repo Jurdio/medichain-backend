@@ -11,7 +11,6 @@ import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
 export class CertificateTypesService {
   constructor(
     @InjectRepository(CertificateType) private readonly certTypeRepo: Repository<CertificateType>,
-    @InjectRepository(Direction) private readonly directionRepo: Repository<Direction>,
   ) {}
 
   async create(dto: CreateCertificateTypeDto) {
@@ -20,9 +19,6 @@ export class CertificateTypesService {
       slug: dto.slug,
       description: dto.description,
     });
-    if (dto.directionIds?.length) {
-      entity.directions = await this.directionRepo.find({ where: { id: In(dto.directionIds) } });
-    }
     return this.certTypeRepo.save(entity);
   }
 
@@ -32,7 +28,6 @@ export class CertificateTypesService {
     const skip = (page - 1) * limit;
 
     const [items, total] = await this.certTypeRepo.findAndCount({
-      relations: { directions: true },
       order: { createdAt: 'DESC' },
       skip,
       take: limit,
@@ -53,7 +48,7 @@ export class CertificateTypesService {
   }
 
   async findOne(id: string) {
-    const item = await this.certTypeRepo.findOne({ where: { id }, relations: { directions: true } });
+    const item = await this.certTypeRepo.findOne({ where: { id } });
     if (!item) throw new NotFoundException('CertificateType not found');
     return item;
   }
@@ -63,11 +58,6 @@ export class CertificateTypesService {
     item.name = dto.name ?? item.name;
     item.slug = dto.slug ?? item.slug;
     item.description = dto.description ?? item.description;
-    if (dto.directionIds) {
-      item.directions = dto.directionIds.length
-        ? await this.directionRepo.find({ where: { id: In(dto.directionIds) } })
-        : [];
-    }
     return this.certTypeRepo.save(item);
   }
 
