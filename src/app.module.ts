@@ -13,6 +13,7 @@ import { PrivyService } from './common/privy/privy.service';
 import { NftModule } from './nft/nft.module';
 import { VerifyModule } from './verify/verify.module';
 import { DoctorsModule } from './doctors/doctors.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { DoctorsModule } from './doctors/doctors.module';
     NftModule,
     VerifyModule,
     DoctorsModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [
