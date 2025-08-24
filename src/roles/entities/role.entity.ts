@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, OneToMany } from 'typeorm';
+import { Doctor } from '../../doctors/entities/doctor.entity';
 
 export type PermissionActions = {
   read: boolean;
@@ -35,6 +36,9 @@ export class Role {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Doctor, (doctor) => doctor.role)
+  doctors?: Doctor[];
 }
 
 

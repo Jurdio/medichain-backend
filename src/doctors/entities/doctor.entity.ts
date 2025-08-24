@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import { Role } from '../../roles/entities/role.entity';
 
 @Entity('doctors')
 export class Doctor {
@@ -24,6 +25,17 @@ export class Doctor {
 
   @Column({ type: 'boolean', default: false })
   active: boolean;
+
+  @ManyToOne(() => Role, (role) => role.doctors, {
+    nullable: true,
+    onDelete: 'SET NULL',
+    onUpdate: 'CASCADE',
+  })
+  @JoinColumn({ name: 'roleId' })
+  role?: Role | null;
+
+  @Column({ type: 'uuid', nullable: true })
+  roleId?: string | null;
 
   @CreateDateColumn()
   createdAt: Date;
