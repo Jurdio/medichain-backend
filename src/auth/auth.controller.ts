@@ -1,7 +1,8 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { EmailLoginDto } from './dto/login.dto';
+import { RefreshTokenDto } from './dto/refresh.dto';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -14,6 +15,7 @@ export class AuthController {
     type: 'object',
     properties: {
       accessToken: { type: 'string' },
+      refreshToken: { type: 'string' },
       user: {
         type: 'object',
         properties: {
@@ -28,6 +30,19 @@ export class AuthController {
   } })
   async login(@Body() dto: EmailLoginDto) {
     return this.authService.loginByEmail(dto.email.trim());
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access and refresh tokens' })
+  @ApiOkResponse({ description: 'Returns new access and refresh tokens', schema: {
+    type: 'object',
+    properties: {
+      accessToken: { type: 'string' },
+      refreshToken: { type: 'string' },
+    },
+  } })
+  async refresh(@Body() dto: RefreshTokenDto) {
+    return this.authService.refreshTokens(dto.refreshToken);
   }
 }
 
