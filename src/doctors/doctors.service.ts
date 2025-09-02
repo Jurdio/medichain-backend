@@ -68,6 +68,14 @@ export class DoctorsService {
     
   }
 
+  async findOneWithRole(id: string) {
+    const doctor = await this.doctorRepository.findOne({ where: { id }, relations: { role: true } });
+    if (!doctor) {
+      throw new NotFoundException('Doctor not found');
+    }
+    return doctor;
+  }
+
   async findByEmailOrWallet(params: { email?: string; walletAddress?: string }) {
     const { email, walletAddress } = params;
     if (!email && !walletAddress) {
