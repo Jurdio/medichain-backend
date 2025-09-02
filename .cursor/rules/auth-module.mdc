@@ -1,0 +1,183 @@
+Title: Auth Module (JWT + Refresh) — Backend Rules for AI Agents
+
+Summary
+- Minimal email-only login. No OTP. Issues short-lived access token (JWT) and long-lived refresh token.
+- Uses existing Doctor records as user identities; optional wallet linking via Privy on login.
+- Swagger is enabled; endpoints are documented and use Bearer auth.
+
+Context
+- Framework: NestJS 11, TypeScript.
+- Storage: PostgreSQL via TypeORM; `Doctor` relates to `Role` with JSONB permissions.
+- Related modules/files:
+  - `src/auth/auth.module.ts`: wiring for JWT, strategy, providers.
+  - `src/auth/auth.service.ts`: login, token issuing, refresh.
+  - `src/auth/auth.controller.ts`: `/auth/login`, `/auth/refresh` endpoints.
+  - `src/auth/jwt.strategy.ts`: JWT validation via Passport.
+  - `src/auth/jwt-auth.guard.ts`: guard for protected routes.
+  - `src/users/users.controller.ts`: `GET /me` protected by JWT.
+  - `src/common/privy/privy.service.ts`: optional wallet lookup/creation helper.
+  - `src/main.ts`: Swagger + global ValidationPipe config.
+
+Environment Variables
+- JWT_SECRET: secret for access tokens. Example: dev_secret_change_me
+- JWT_EXPIRES_IN: access token TTL. Example: 15m
+- JWT_REFRESH_SECRET: secret for refresh tokens. Example: dev_refresh_secret_change_me
+- JWT_REFRESH_EXPIRES_IN: refresh token TTL. Example: 7d
+
+Data Model and Token Payloads
+- Doctor entity (simplified):
+  - `id: uuid`, `email: string`, `walletAddress: string`, `active: boolean`, `role?: Role`.
+  - `Role.permissions: { Users?: ModulePermissions; Documents?: ModulePermissions }` with `{ read: boolean; save: boolean }` per module.
+
+- Access token payload (type `JwtUser`):
+  - `sub: string` — doctor id
+  - `email: string`
+  - `walletAddress: string`
+  - `roleSlug: string | null`
+  - `permissions?: Record<string, Record<string, { read: boolean; save: boolean }>>` — snapshot
+
+- Refresh token payload:
+  - `{ sub: string; email: string }`
+
+Endpoints
+1) POST /auth/login
+   - Purpose: Log in by email (no OTP). Issues `accessToken` and `refreshToken`.
+   - Request body (validated DTO):
+     - `EmailLoginDto`: `{ email: string }` (must be a valid email)
+   - Behavior:
+     - Finds active `Doctor` by email.
+     - If `walletAddress` missing, attempts to fetch via `PrivyService.getPrimaryWalletByEmail(email)` (best-effort; not persisted).
+     - Signs access token (JWT_SECRET/JWT_EXPIRES_IN) with `JwtUser` payload snapshot.
+     - Signs refresh token (JWT_REFRESH_SECRET/JWT_REFRESH_EXPIRES_IN) with `{ sub, email }`.
+   - Response 200 JSON:
+     - `{ accessToken: string, refreshToken: string, user: { id, email, walletAddress, role, permissions } }`
+   - Errors:
+     - 401 Invalid credentials | inactive user
+
+2) POST /auth/refresh
+   - Purpose: Exchange a refresh token for a new access/refresh token pair.
+   - Request body (validated DTO):
+     - `RefreshTokenDto`: `{ refreshToken: string }`
+   - Behavior:
+     - Verifies refresh token with JWT_REFRESH_SECRET.
+     - Loads `Doctor` by `sub`; must be active.
+     - Rebuilds `JwtUser` snapshot and re-issues tokens.
+   - Response 200 JSON: `{ accessToken: string, refreshToken: string }`
+   - Errors:
+     - 401 Invalid refresh token | user not active
+
+3) GET /me
+   - Purpose: Return the current JWT user payload (echoed by strategy).
+   - Auth: Bearer token required; guarded by `JwtAuthGuard`.
+   - Response 200: `JwtUser` payload with standard JWT claims (`iat`, `exp`).
+
+Swagger
+- Config: `src/main.ts` uses `DocumentBuilder().addBearerAuth(...)` and adds tags.
+- Controllers:
+  - `/auth/login` and `/auth/refresh` have `@ApiOperation`, `@ApiOkResponse` schemas.
+  - `/me` includes `@ApiBearerAuth()` and schema docs.
+
+Auth Flow (High-Level)
+1. Client submits `{ email }` to `/auth/login`.
+2. Server validates email, loads active `Doctor`, optionally enriches wallet via Privy.
+3. Server issues `{ accessToken (short), refreshToken (long), user }`.
+4. Client uses `Authorization: Bearer <accessToken>` for protected requests.
+5. On 401 due to expired access token, client calls `/auth/refresh` with `refreshToken` to obtain a new pair.
+
+Security & Design Notes
+- Access token TTL should be short (e.g., 15m). Refresh token TTL longer (e.g., 7d).
+- Snapshot vs live permissions:
+  - Including `permissions` in `JwtUser` lowers DB reads but requires short TTL for timely changes.
+  - If immediate revocation is required, avoid embedding permissions and fetch role on each request in a future `PermissionsGuard`.
+- Refresh token storage: store in httpOnly secure storage on the client when possible.
+- Rotation: `/auth/refresh` rotates both tokens every time. Clients should replace stored tokens with returned ones.
+- Revocation (not implemented): For stricter control, keep a RT allowlist/denylist (e.g., hashed RT per user) or add a `tokenVersion` field.
+
+Privy Integration Notes
+- `PrivyService.getPrimaryWalletByEmail(email)` attempts to find a linked Solana wallet via Privy APIs, normalizing across response shapes.
+- `ensureSolanaWalletForEmail(email)` is provided as best-effort to create an embedded wallet if supported by current SDK; it returns `null` if unsupported.
+- Current login uses `getPrimaryWalletByEmail` to enrich `walletAddress` in-memory only; DB persistence is not performed automatically.
+
+Extending to RBAC (Future Work)
+- Decorator: `@RequirePermission(domain, moduleName, action)` sets metadata.
+- Guard: `PermissionsGuard` reads metadata and checks either JWT snapshot or DB (`RolesService.findBySlug`).
+- Usage example:
+  - `@UseGuards(JwtAuthGuard, PermissionsGuard)`
+  - `@RequirePermission('Users','doctors','read')`
+
+Errors & Exceptions
+- Uses NestJS `UnauthorizedException` for auth failures.
+- Global `ValidationPipe` enforces DTO validation; invalid fields return 400 with details.
+
+Testing/Diagnostics
+- Manual: Use Swagger UI `/api-docs`.
+- Sequence:
+  - POST `/auth/login` → copy tokens.
+  - Authorize with Bearer token → GET `/me`.
+  - POST `/auth/refresh` with `refreshToken` → verify rotated tokens.
+
+Operational Guidance for Agents
+- When adding a protected endpoint, apply `@UseGuards(JwtAuthGuard)` and add `@ApiBearerAuth()`.
+- For endpoints that require fine-grained permissions, introduce `RequirePermission` decorator and `PermissionsGuard` as described.
+- Do not expose secrets in code or docs. Use env variables.
+- Keep JWT TTLs configurable via env. Defaults are development-friendly only.
+- Avoid persisting sensitive RTs unless hashed and revocable.
+
+File Map (for quick navigation)
+- Auth wiring: `src/auth/auth.module.ts`
+- Login/Refresh logic: `src/auth/auth.service.ts`
+- Endpoints: `src/auth/auth.controller.ts`
+- JWT validation: `src/auth/jwt.strategy.ts`
+- Guard: `src/auth/jwt-auth.guard.ts`
+- Swagger/base app setup: `src/main.ts`
+- User info: `src/users/users.controller.ts`
+- Privy helper: `src/common/privy/privy.service.ts`
+
+Sequence Diagram
+```mermaid
+sequenceDiagram
+    participant "Client"
+    participant "AuthController"
+    participant "DoctorsService"
+    participant "PrivyService"
+    participant "JwtService"
+    participant "UsersController"
+    participant "JwtAuthGuard"
+    participant "JwtStrategy"
+
+    Note over "Client","AuthController": "Login flow"
+    "Client"->>"AuthController": "POST /auth/login { email }"
+    "AuthController"->>"DoctorsService": "findByEmailOrWallet(email)"
+    "DoctorsService"-->>"AuthController": "Doctor or null"
+    alt "Doctor found and active"
+        "AuthController"->>"PrivyService": "getPrimaryWalletByEmail(email) (optional)"
+        "PrivyService"-->>"AuthController": "walletAddress or null"
+        "AuthController"->>"JwtService": "sign access (JWT_SECRET, JWT_EXPIRES_IN)"
+        "AuthController"->>"JwtService": "sign refresh (JWT_REFRESH_SECRET, JWT_REFRESH_EXPIRES_IN)"
+        "JwtService"-->>"AuthController": "accessToken, refreshToken"
+        "AuthController"-->>"Client": "{ accessToken, refreshToken, user }"
+    else "Not found / inactive"
+        "AuthController"-->>"Client": "401 Unauthorized"
+    end
+
+    Note over "Client","UsersController": "Use access token on protected endpoint"
+    "Client"->>"UsersController": "GET /me (Authorization: Bearer accessToken)"
+    "UsersController"->>"JwtAuthGuard": "guard check"
+    "JwtAuthGuard"->>"JwtStrategy": "validate(accessToken)"
+    "JwtStrategy"-->>"JwtAuthGuard": "JwtUser payload"
+    "JwtAuthGuard"-->>"UsersController": "authorized"
+    "UsersController"-->>"Client": "JwtUser payload (current user)"
+
+    Note over "Client","AuthController": "Refresh flow"
+    "Client"->>"AuthController": "POST /auth/refresh { refreshToken }"
+    "AuthController"->>"JwtService": "verify(refreshToken, JWT_REFRESH_SECRET)"
+    alt "Valid refresh token"
+        "AuthController"->>"DoctorsService": "findOne(decoded.sub)"
+        "DoctorsService"-->>"AuthController": "Doctor"
+        "AuthController"->>"JwtService": "sign new access & refresh"
+        "AuthController"-->>"Client": "{ accessToken, refreshToken }"
+    else "Invalid/expired"
+        "AuthController"-->>"Client": "401 Unauthorized"
+    end
+```
+
