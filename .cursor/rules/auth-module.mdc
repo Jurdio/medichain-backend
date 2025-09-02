@@ -11,10 +11,9 @@ Context
 - Related modules/files:
   - `src/auth/auth.module.ts`: wiring for JWT, strategy, providers.
   - `src/auth/auth.service.ts`: login, token issuing, refresh.
-  - `src/auth/auth.controller.ts`: `/auth/login`, `/auth/refresh` endpoints.
+  - `src/auth/auth.controller.ts`: `/auth/login`, `/auth/refresh`, `/auth/me` endpoints.
   - `src/auth/jwt.strategy.ts`: JWT validation via Passport.
   - `src/auth/jwt-auth.guard.ts`: guard for protected routes.
-  - `src/users/users.controller.ts`: `GET /me` protected by JWT.
   - `src/common/privy/privy.service.ts`: optional wallet lookup/creation helper.
   - `src/main.ts`: Swagger + global ValidationPipe config.
 
@@ -66,16 +65,22 @@ Endpoints
    - Errors:
      - 401 Invalid refresh token | user not active
 
-3) GET /me
-   - Purpose: Return the current JWT user payload (echoed by strategy).
+3) GET /auth/me
+   - Purpose: Return the current doctor profile with full `role` object.
    - Auth: Bearer token required; guarded by `JwtAuthGuard`.
-   - Response 200: `JwtUser` payload with standard JWT claims (`iat`, `exp`).
+   - Behavior:
+     - Loads current doctor by `sub` from JWT using `DoctorsService.findOneWithRole` (includes `role` relation).
+   - Response 200 JSON:
+     - `{ id, email, walletAddress, fullName, phone|null, specialization|null, active, role|null }`
+       - `role`: `{ id, name, slug, description|null, permissions, createdAt, updatedAt }`
+   - Notes:
+     - This replaces the previous `GET /me` (which returned raw JWT payload). The old route has been removed.
 
 Swagger
 - Config: `src/main.ts` uses `DocumentBuilder().addBearerAuth(...)` and adds tags.
 - Controllers:
   - `/auth/login` and `/auth/refresh` have `@ApiOperation`, `@ApiOkResponse` schemas.
-  - `/me` includes `@ApiBearerAuth()` and schema docs.
+  - `/auth/me` includes `@ApiBearerAuth()` and a detailed response schema with nested `role`.
 
 Auth Flow (High-Level)
 1. Client submits `{ email }` to `/auth/login`.
@@ -113,7 +118,7 @@ Testing/Diagnostics
 - Manual: Use Swagger UI `/api-docs`.
 - Sequence:
   - POST `/auth/login` → copy tokens.
-  - Authorize with Bearer token → GET `/me`.
+  - Authorize with Bearer token → GET `/auth/me`.
   - POST `/auth/refresh` with `refreshToken` → verify rotated tokens.
 
 Operational Guidance for Agents
@@ -130,7 +135,7 @@ File Map (for quick navigation)
 - JWT validation: `src/auth/jwt.strategy.ts`
 - Guard: `src/auth/jwt-auth.guard.ts`
 - Swagger/base app setup: `src/main.ts`
-- User info: `src/users/users.controller.ts`
+
 - Privy helper: `src/common/privy/privy.service.ts`
 
 Sequence Diagram
@@ -141,7 +146,7 @@ sequenceDiagram
     participant "DoctorsService"
     participant "PrivyService"
     participant "JwtService"
-    participant "UsersController"
+    
     participant "JwtAuthGuard"
     participant "JwtStrategy"
 
@@ -160,13 +165,15 @@ sequenceDiagram
         "AuthController"-->>"Client": "401 Unauthorized"
     end
 
-    Note over "Client","UsersController": "Use access token on protected endpoint"
-    "Client"->>"UsersController": "GET /me (Authorization: Bearer accessToken)"
-    "UsersController"->>"JwtAuthGuard": "guard check"
+    Note over "Client","AuthController": "Use access token on protected endpoint"
+    "Client"->>"AuthController": "GET /auth/me (Authorization: Bearer accessToken)"
+    "AuthController"->>"JwtAuthGuard": "guard check"
     "JwtAuthGuard"->>"JwtStrategy": "validate(accessToken)"
     "JwtStrategy"-->>"JwtAuthGuard": "JwtUser payload"
-    "JwtAuthGuard"-->>"UsersController": "authorized"
-    "UsersController"-->>"Client": "JwtUser payload (current user)"
+    "JwtAuthGuard"-->>"AuthController": "authorized"
+    "AuthController"->>"DoctorsService": "findOneWithRole(user.sub)"
+    "DoctorsService"-->>"AuthController": "Doctor with role"
+    "AuthController"-->>"Client": "Doctor profile + full role"
 
     Note over "Client","AuthController": "Refresh flow"
     "Client"->>"AuthController": "POST /auth/refresh { refreshToken }"
