@@ -13,7 +13,9 @@ Context
   - `src/auth/auth.service.ts`: login, token issuing, refresh.
   - `src/auth/auth.controller.ts`: `/auth/login`, `/auth/refresh`, `/auth/me` endpoints.
   - `src/auth/jwt.strategy.ts`: JWT validation via Passport.
-  - `src/auth/jwt-auth.guard.ts`: guard for protected routes.
+  - `src/auth/jwt-auth.guard.ts`: guard for protected routes (JWT bearer).
+  - `src/auth/permissions.decorator.ts`: `@RequirePermission(domain, module, action)` decorator.
+  - `src/auth/permissions.guard.ts`: checks required permission against JWT `permissions` snapshot.
   - `src/common/privy/privy.service.ts`: optional wallet lookup/creation helper.
   - `src/main.ts`: Swagger + global ValidationPipe config.
 
@@ -103,12 +105,12 @@ Privy Integration Notes
 - `ensureSolanaWalletForEmail(email)` is provided as best-effort to create an embedded wallet if supported by current SDK; it returns `null` if unsupported.
 - Current login uses `getPrimaryWalletByEmail` to enrich `walletAddress` in-memory only; DB persistence is not performed automatically.
 
-Extending to RBAC (Future Work)
-- Decorator: `@RequirePermission(domain, moduleName, action)` sets metadata.
-- Guard: `PermissionsGuard` reads metadata and checks either JWT snapshot or DB (`RolesService.findBySlug`).
-- Usage example:
-  - `@UseGuards(JwtAuthGuard, PermissionsGuard)`
-  - `@RequirePermission('Users','doctors','read')`
+RBAC Permissions (Applied)
+- Decorator: `@RequirePermission(domain, moduleName, action)` sets metadata on route handler.
+- Guard: `PermissionsGuard` reads metadata and checks JWT payload snapshot `permissions[domain][moduleName][action] === true`.
+- Usage pattern on protected controllers:
+  - Class-level: `@ApiBearerAuth()` and `@UseGuards(JwtAuthGuard, PermissionsGuard)`
+  - Per-route: `@RequirePermission('Users'|'Documents', '<module>', 'read'|'save')`
 
 Errors & Exceptions
 - Uses NestJS `UnauthorizedException` for auth failures.
@@ -122,8 +124,10 @@ Testing/Diagnostics
   - POST `/auth/refresh` with `refreshToken` → verify rotated tokens.
 
 Operational Guidance for Agents
-- When adding a protected endpoint, apply `@UseGuards(JwtAuthGuard)` and add `@ApiBearerAuth()`.
-- For endpoints that require fine-grained permissions, introduce `RequirePermission` decorator and `PermissionsGuard` as described.
+- For any protected module controller, use class-level `@ApiBearerAuth()` and `@UseGuards(JwtAuthGuard, PermissionsGuard)`.
+- Add per-route `@RequirePermission`:
+  - Read endpoints: `@RequirePermission('Documents'|'Users', '<module>', 'read')`
+  - Mutating endpoints: `@RequirePermission('Documents'|'Users', '<module>', 'save')`
 - Do not expose secrets in code or docs. Use env variables.
 - Keep JWT TTLs configurable via env. Defaults are development-friendly only.
 - Avoid persisting sensitive RTs unless hashed and revocable.

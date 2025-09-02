@@ -1,16 +1,22 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Post, Body, HttpCode, HttpStatus, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { VerifyService } from './verify.service';
 import { VerifyTransactionDto } from './dto/verify-transaction.dto';
 import { VerificationResponseDto } from './dto/verification-response.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @ApiTags('verify')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('verify')
 export class VerifyController {
   constructor(private readonly verifyService: VerifyService) {}
 
   @Post('transaction')
   @HttpCode(HttpStatus.OK)
+  @RequirePermission('Documents', 'verify', 'save')
   @ApiOperation({ summary: 'Verify a Solana transaction for a MediCert NFT' })
   @ApiResponse({
     status: HttpStatus.OK,

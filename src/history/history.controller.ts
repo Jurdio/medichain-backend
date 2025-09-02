@@ -1,9 +1,14 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
 import { HistoryService } from './history.service';
-import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiQuery, ApiBearerAuth } from '@nestjs/swagger';
 import { PaginationQueryDto } from './dto/pagination-query.dto';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermission } from '../auth/permissions.decorator';
 
 @ApiTags('history')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('history')
 export class HistoryController {
   constructor(private readonly historyService: HistoryService) {}
@@ -17,6 +22,7 @@ export class HistoryController {
   @ApiQuery({ name: 'toDate', required: false, type: String, description: 'Filter to date (inclusive), ISO string', example: '2024-12-31T23:59:59.999Z' })
   @ApiResponse({ status: 200, description: 'Returns the transaction history with pagination.' })
   @ApiResponse({ status: 404, description: 'No history found for this doctor.' })
+  @RequirePermission('Documents', 'history', 'read')
   findAllByDoctor(
     @Param('doctorWalletAddress') doctorWalletAddress: string,
     @Query() { page = 1, limit = 10, fromDate, toDate }: PaginationQueryDto,

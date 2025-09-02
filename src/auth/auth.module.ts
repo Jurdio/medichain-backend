@@ -8,6 +8,7 @@ import { JwtStrategy } from './jwt.strategy';
 import { DoctorsModule } from '../doctors/doctors.module';
 import { PrivyService } from '../common/privy/privy.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { PermissionsGuard } from './permissions.guard';
 
 @Module({
   imports: [
@@ -24,7 +25,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, PrivyService, JwtAuthGuard],
+  providers: [AuthService, JwtStrategy, PrivyService, JwtAuthGuard, PermissionsGuard],
   exports: [AuthService, JwtAuthGuard],
 })
 export class AuthModule {}
