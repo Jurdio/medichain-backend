@@ -16,6 +16,8 @@ import { DoctorsModule } from './doctors/doctors.module';
 import { RolesModule } from './roles/roles.module';
 import { DirectionsModule } from './directions/directions.module';
 import { CertificateTypesModule } from './certificate-types/certificate-types.module';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -48,6 +50,8 @@ import { CertificateTypesModule } from './certificate-types/certificate-types.mo
     RolesModule,
     DirectionsModule,
     CertificateTypesModule,
+    UsersModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [

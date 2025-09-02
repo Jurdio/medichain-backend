@@ -131,4 +131,30 @@ export class PrivyService {
       return null;
     }
   }
+
+  async ensureSolanaWalletForEmail(email: string): Promise<string | null> {
+    const existing = await this.getPrimaryWalletByEmail(email);
+    if (existing) return existing;
+    if (!this.client) return null;
+    try {
+      this.logger.log(`Attempting to create embedded Solana wallet for email=${email}`);
+      // Different SDK versions may expose different creation methods; try best-effort.
+      const maybeCreate = (this.client as any).createEmbeddedWallet || (this.client as any).wallets?.createEmbeddedWallet;
+      if (typeof maybeCreate !== 'function') {
+        this.logger.warn('Privy client does not expose createEmbeddedWallet; cannot provision server-side');
+        return null;
+      }
+      const created = await maybeCreate.call(this.client, { email, chain: 'solana' });
+      const address = created?.address || created?.publicAddress || created?.public_address || created?.walletAddress || null;
+      if (address) {
+        this.logger.log(`Created embedded Solana wallet: ${address} for email=${email}`);
+        return address;
+      }
+      this.logger.warn('Embedded wallet creation returned no address');
+      return null;
+    } catch (e) {
+      this.logger.error('Failed to create embedded wallet via Privy', e as any);
+      return null;
+    }
+  }
 }

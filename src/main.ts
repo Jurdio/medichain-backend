@@ -15,6 +15,7 @@ async function bootstrap() {
     .setTitle('Medical Admin Panel API')
     .setDescription('API documentation for the Medical Admin Panel backend')
     .setVersion('1.0')
+    .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'bearer')
     .addTag('protect', 'Operations related to certificate protection')
     .build();
   const document = SwaggerModule.createDocument(app, config);

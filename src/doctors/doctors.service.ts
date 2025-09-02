@@ -68,6 +68,25 @@ export class DoctorsService {
     
   }
 
+  async findByEmailOrWallet(params: { email?: string; walletAddress?: string }) {
+    const { email, walletAddress } = params;
+    if (!email && !walletAddress) {
+      return null;
+    }
+
+    const where = email && walletAddress
+      ? [{ email }, { walletAddress }]
+      : email
+        ? { email }
+        : { walletAddress };
+
+    const doctor = await this.doctorRepository.findOne({
+      where: where as any,
+      relations: { role: true },
+    });
+    return doctor ?? null;
+  }
+
   async update(id: string, updateDoctorDto: UpdateDoctorDto) {
     const { isActive, ...rest } = updateDoctorDto;
     const mapped: Partial<Doctor> = { ...rest } as Partial<Doctor>;
