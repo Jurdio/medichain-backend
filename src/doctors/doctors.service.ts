@@ -5,6 +5,7 @@ import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
 import { QueryDoctorsDto } from './dto/query-doctors.dto';
 import { TenantRepositoryFactory } from '../common/tenant/tenant-repository.factory';
+import { HashingService } from '../common/hashing/hashing.service';
 
 @Injectable()
 export class DoctorsService {
@@ -12,12 +13,17 @@ export class DoctorsService {
 
   constructor(
     private readonly tenantRepoFactory: TenantRepositoryFactory,
+    private readonly hashingService: HashingService,
   ) {
     this.doctorRepository = this.tenantRepoFactory.getRepository(Doctor);
   }
 
   async create(createDoctorDto: CreateDoctorDto) {
-    const doctor = this.doctorRepository.create(createDoctorDto);
+    const { password, ...rest } = createDoctorDto;
+    const doctor = this.doctorRepository.create(rest as any);
+    if (password) {
+      (doctor as any).passwordHash = await this.hashingService.hashPassword(password);
+    }
     return this.doctorRepository.save(doctor);
   }
 
@@ -98,11 +104,24 @@ export class DoctorsService {
     return doctor ?? null;
   }
 
+  async findByEmailWithSensitive(email: string) {
+    if (!email) return null;
+    const qb = this.doctorRepository.qb('d');
+    qb.leftJoinAndSelect('d.role', 'role');
+    qb.where('d.email = :email', { email });
+    qb.addSelect('d.passwordHash');
+    qb.limit(1);
+    return qb.getOne();
+  }
+
   async update(id: string, updateDoctorDto: UpdateDoctorDto) {
-    const { isActive, ...rest } = updateDoctorDto;
+    const { isActive, password, ...rest } = updateDoctorDto;
     const mapped: Partial<Doctor> = { ...rest } as Partial<Doctor>;
     if (typeof isActive === 'boolean') {
       mapped.active = isActive;
+    }
+    if (password) {
+      (mapped as any).passwordHash = await this.hashingService.hashPassword(password);
     }
     const preload = await this.doctorRepository.preload({ id, ...mapped });
     if (!preload) {

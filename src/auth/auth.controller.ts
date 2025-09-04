@@ -15,7 +15,7 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  @ApiOperation({ summary: 'Login by email (no OTP), returns JWT' })
+  @ApiOperation({ summary: 'Login by email + password, returns JWT' })
   @ApiOkResponse({ description: 'Returns access token and user payload', schema: {
     type: 'object',
     properties: {
@@ -34,7 +34,7 @@ export class AuthController {
     },
   } })
   async login(@Body() dto: EmailLoginDto) {
-    return this.authService.loginByEmail(dto.email.trim());
+    return this.authService.loginByEmail({ email: dto.email.trim(), password: dto.password });
   }
 
   @Post('refresh')

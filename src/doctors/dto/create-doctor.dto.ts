@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, Length, Matches, IsUUID } from 'class-validator';
+import { IsEmail, IsOptional, IsString, Length, Matches, IsUUID, MinLength, MaxLength } from 'class-validator';
 
 export class CreateDoctorDto {
   @ApiProperty({ description: 'Full name (ПІБ) of the doctor' })
@@ -32,6 +32,13 @@ export class CreateDoctorDto {
   @IsOptional()
   @IsUUID()
   roleId?: string;
+
+  @ApiPropertyOptional({ description: 'Plain text password (will be hashed)', minLength: 8, maxLength: 120 })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(120)
+  password?: string;
 }
 
 

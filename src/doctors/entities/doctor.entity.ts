@@ -21,6 +21,9 @@ export class Doctor {
   @Column({ type: 'varchar', length: 100 })
   walletAddress: string;
 
+  @Column({ type: 'varchar', length: 120, nullable: true, select: false })
+  passwordHash?: string | null;
+
   @Column({ type: 'varchar', length: 20, nullable: true })
   phone?: string;
 

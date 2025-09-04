@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { DoctorsService } from '../doctors/doctors.service';
 import { PrivyService } from '../common/privy/privy.service';
 import { ConfigService } from '@nestjs/config';
+import { HashingService } from '../common/hashing/hashing.service';
 
 export type JwtUser = {
   sub: string;
@@ -21,6 +22,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly privyService: PrivyService,
     private readonly configService: ConfigService,
+    private readonly hashingService: HashingService,
   ) {}
 
   private async signAccessToken(payload: JwtUser): Promise<string> {
@@ -35,10 +37,22 @@ export class AuthService {
     return this.jwtService.signAsync({ sub: payload.sub, email: payload.email }, { secret, expiresIn });
   }
 
-  async loginByEmail(email: string) {
-    const doctor = await this.doctorsService.findByEmailOrWallet({ email });
+  async loginByEmail(credentials: { email: string; password: string }) {
+    const { email, password } = credentials;
+    const doctor = await this.doctorsService.findByEmailWithSensitive(email);
     if (!doctor || !doctor.active) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // verify password if set
+    if ((doctor as any).passwordHash) {
+      const ok = await this.hashingService.verifyPassword(password, (doctor as any).passwordHash);
+      if (!ok) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+    } else {
+      // if no password set, deny login to enforce password requirement
+      throw new UnauthorizedException('Password required');
     }
 
     // try to enrich wallet from Privy if missing
