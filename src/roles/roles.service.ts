@@ -1,17 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
+import { TenantRepositoryFactory } from '../common/tenant/tenant-repository.factory';
 
 @Injectable()
 export class RolesService {
+  private roleRepository: Repository<Role> & { qb(alias?: string): any };
+
   constructor(
-    @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
-  ) {}
+    private readonly tenantRepoFactory: TenantRepositoryFactory,
+  ) {
+    this.roleRepository = this.tenantRepoFactory.getRepository(Role);
+  }
 
   create(dto: CreateRoleDto): Promise<Role> {
     const entity = this.roleRepository.create(dto);

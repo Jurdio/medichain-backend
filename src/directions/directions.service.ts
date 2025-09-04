@@ -6,13 +6,19 @@ import { CreateDirectionDto } from './dto/create-direction.dto';
 import { UpdateDirectionDto } from './dto/update-direction.dto';
 import { CertificateType } from '../certificate-types/entities/certificate-type.entity';
 import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
+import { TenantRepositoryFactory } from '../common/tenant/tenant-repository.factory';
 
 @Injectable()
 export class DirectionsService {
+  private directionRepo: Repository<Direction> & { qb(alias?: string): any };
+  private certTypeRepo: Repository<CertificateType> & { qb(alias?: string): any };
+
   constructor(
-    @InjectRepository(Direction) private readonly directionRepo: Repository<Direction>,
-    @InjectRepository(CertificateType) private readonly certTypeRepo: Repository<CertificateType>,
-  ) {}
+    private readonly tenantRepoFactory: TenantRepositoryFactory,
+  ) {
+    this.directionRepo = this.tenantRepoFactory.getRepository(Direction);
+    this.certTypeRepo = this.tenantRepoFactory.getRepository(CertificateType);
+  }
 
   async create(dto: CreateDirectionDto) {
     const direction = this.directionRepo.create({

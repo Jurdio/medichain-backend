@@ -6,15 +6,19 @@ export class Doctor {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Index()
+  @Column({ type: 'uuid' })
+  tenantId: string;
+
   @Column({ type: 'varchar', length: 200 })
   fullName: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 320, unique: true })
+  @Index(['tenantId', 'email'], { unique: true })
+  @Column({ type: 'varchar', length: 320 })
   email: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 100, unique: true })
+  @Index(['tenantId', 'walletAddress'], { unique: true })
+  @Column({ type: 'varchar', length: 100 })
   walletAddress: string;
 
   @Column({ type: 'varchar', length: 20, nullable: true })

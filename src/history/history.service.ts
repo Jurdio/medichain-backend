@@ -1,15 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Between, FindOptionsWhere, Repository } from 'typeorm';
 import { History } from './entities/history.entity';
 import { CreateHistoryDto } from './dto/create-history.dto';
+import { TenantRepositoryFactory } from '../common/tenant/tenant-repository.factory';
 
 @Injectable()
 export class HistoryService {
+  private historyRepository: Repository<History> & { qb(alias?: string): any };
+
   constructor(
-    @InjectRepository(History)
-    private readonly historyRepository: Repository<History>,
-  ) {}
+    private readonly tenantRepoFactory: TenantRepositoryFactory,
+  ) {
+    this.historyRepository = this.tenantRepoFactory.getRepository(History);
+  }
 
   create(createHistoryDto: CreateHistoryDto) {
     const historyEntry = this.historyRepository.create(createHistoryDto);

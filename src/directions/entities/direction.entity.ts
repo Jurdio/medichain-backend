@@ -6,12 +6,16 @@ export class Direction {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 120, unique: true })
+  @Index()
+  @Column({ type: 'uuid' })
+  tenantId: string;
+
+  @Index(['tenantId', 'name'], { unique: true })
+  @Column({ type: 'varchar', length: 120 })
   name: string;
 
-  @Index({ unique: true })
-  @Column({ type: 'varchar', length: 120, unique: true })
+  @Index(['tenantId', 'slug'], { unique: true })
+  @Column({ type: 'varchar', length: 120 })
   slug: string;
 
   @Column({ type: 'varchar', length: 300, nullable: true })

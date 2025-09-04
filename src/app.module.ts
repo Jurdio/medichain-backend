@@ -17,7 +17,9 @@ import { RolesModule } from './roles/roles.module';
 import { DirectionsModule } from './directions/directions.module';
 import { CertificateTypesModule } from './certificate-types/certificate-types.module';
 import { UsersModule } from './users/users.module';
+import { TenantModule } from './common/tenant/tenant.module';
 import { AuthModule } from './auth/auth.module';
+import { TenantsModule } from './tenants/tenants.module';
 
 @Module({
   imports: [
@@ -36,10 +38,11 @@ import { AuthModule } from './auth/auth.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         autoLoadEntities: true,
-        synchronize: true, // Be careful with this in production
+        synchronize: process.env.DB_SYNC === 'true',
       }),
     }),
     ProtectModule,
+    TenantModule,
     HistoryModule,
     MulterModule.register({
       dest: './uploads', // Specify the destination folder for uploaded files
@@ -51,6 +54,7 @@ import { AuthModule } from './auth/auth.module';
     DirectionsModule,
     CertificateTypesModule,
     UsersModule,
+    TenantsModule,
     AuthModule,
   ],
   controllers: [AppController],

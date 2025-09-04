@@ -1,17 +1,21 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { CertificateType } from './entities/certificate-type.entity';
 import { CreateCertificateTypeDto } from './dto/create-certificate-type.dto';
 import { UpdateCertificateTypeDto } from './dto/update-certificate-type.dto';
 import { Direction } from '../directions/entities/direction.entity';
 import { PaginationQueryDto } from '../history/dto/pagination-query.dto';
+import { TenantRepositoryFactory } from '../common/tenant/tenant-repository.factory';
 
 @Injectable()
 export class CertificateTypesService {
+  private certTypeRepo: Repository<CertificateType> & { qb(alias?: string): any };
+
   constructor(
-    @InjectRepository(CertificateType) private readonly certTypeRepo: Repository<CertificateType>,
-  ) {}
+    private readonly tenantRepoFactory: TenantRepositoryFactory,
+  ) {
+    this.certTypeRepo = this.tenantRepoFactory.getRepository(CertificateType);
+  }
 
   async create(dto: CreateCertificateTypeDto) {
     const entity = this.certTypeRepo.create({

@@ -10,6 +10,8 @@ export type JwtUser = {
   walletAddress: string;
   roleSlug: string | null;
   permissions?: Record<string, Record<string, { read: boolean; save: boolean }>>;
+  tenantId: string;
+  isSuperAdmin?: boolean;
 };
 
 @Injectable()
@@ -54,6 +56,8 @@ export class AuthService {
       walletAddress: doctor.walletAddress,
       roleSlug: doctor.role?.slug ?? null,
       permissions: doctor.role?.permissions as any,
+      tenantId: (doctor as any).tenantId,
+      isSuperAdmin: doctor.role?.slug === 'super_admin',
     };
 
     const accessToken = await this.signAccessToken(payload);
@@ -87,6 +91,8 @@ export class AuthService {
         walletAddress: doctor.walletAddress,
         roleSlug: doctor.role?.slug ?? null,
         permissions: doctor.role?.permissions as any,
+        tenantId: (doctor as any).tenantId,
+        isSuperAdmin: doctor.role?.slug === 'super_admin',
       };
 
       const newAccessToken = await this.signAccessToken(payload);

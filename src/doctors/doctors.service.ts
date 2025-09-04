@@ -1,17 +1,20 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
 import { Doctor } from './entities/doctor.entity';
 import { CreateDoctorDto } from './dto/create-doctor.dto';
 import { UpdateDoctorDto } from './dto/update-doctor.dto';
 import { QueryDoctorsDto } from './dto/query-doctors.dto';
+import { TenantRepositoryFactory } from '../common/tenant/tenant-repository.factory';
 
 @Injectable()
 export class DoctorsService {
+  private doctorRepository: Repository<Doctor> & { qb(alias?: string): any };
+
   constructor(
-    @InjectRepository(Doctor)
-    private readonly doctorRepository: Repository<Doctor>,
-  ) {}
+    private readonly tenantRepoFactory: TenantRepositoryFactory,
+  ) {
+    this.doctorRepository = this.tenantRepoFactory.getRepository(Doctor);
+  }
 
   async create(createDoctorDto: CreateDoctorDto) {
     const doctor = this.doctorRepository.create(createDoctorDto);

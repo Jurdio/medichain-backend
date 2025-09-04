@@ -1,0 +1,138 @@
+## Multi-tenancy (Single-Table) — Rules for the Backend (NestJS + TypeORM)
+
+### 1) Project-specific overview
+- **Goal**: Isolate tenant data within the same database by scoping all reads/writes to a `tenantId` column.
+- **Approach**: Single-table multi-tenancy. Every multi-tenant entity has `tenantId uuid not null`. All queries are transparently filtered by `tenantId`.
+- **Source of tenant**:
+  - From JWT: `JwtUser.tenantId`.
+  - Super admin can impersonate via header `x-tenant-id: <uuid>`.
+  - Tenants represent clinics. Each clinic is one tenant; all its data is scoped by `tenantId`.
+
+### 2) Architecture and components
+- **TenantContext (ALS)**: Request-scoped context storing the effective `tenantId`.
+  - File: `src/common/tenant/tenant.context.ts`.
+- **TenantInterceptor (global)**: Resolves `tenantId` per request and sets it in ALS.
+  - File: `src/common/tenant/tenant.interceptor.ts`.
+  - Registered globally in `TenantModule` via `APP_INTERCEPTOR`.
+- **TenantGuard**: Validates presence of effective `tenantId` for protected routes (super admin may set it via header).
+  - File: `src/common/tenant/tenant.guard.ts`.
+- **TenantRepositoryFactory**: Returns repository wrappers that automatically:
+  - Append `WHERE <alias>.tenantId = :tenantId` to queries.
+  - Inject `tenantId` on `save()` when missing.
+  - File: `src/common/tenant/tenant-repository.factory.ts`.
+- **TenantModule (global)**: Exposes context, guard, repo factory, registers interceptor globally.
+  - File: `src/common/tenant/tenant.module.ts`.
+
+### 3) Entity rules
+- Add to every multi-tenant entity:
+  - Column: `tenantId: uuid` (not null) with an index.
+  - Composite unique indexes scoped by `tenantId` for tenant-specific unique fields (e.g., `(tenantId, email)`, `(tenantId, slug)`).
+- Examples already applied:
+  - `src/doctors/entities/doctor.entity.ts` → `(tenantId, email)`, `(tenantId, walletAddress)`.
+  - `src/directions/entities/direction.entity.ts` → `(tenantId, name)`, `(tenantId, slug)`.
+  - `src/certificate-types/entities/certificate-type.entity.ts` → `(tenantId, name)`, `(tenantId, slug)`.
+  - `src/roles/entities/role.entity.ts` → `(tenantId, name)`, `(tenantId, slug)`.
+  - `src/history/entities/history.entity.ts` → `tenantId` indexed.
+
+### 4) Service/repository rules
+- Do NOT inject raw `Repository<Entity>` into services for multi-tenant data.
+- Always use `TenantRepositoryFactory.getRepository(Entity)` in services to obtain a tenant-aware repository.
+- Do NOT pass or expect `tenantId` in DTOs; the repo will inject it on save; filtering is automatic on reads.
+- Prefer `repo.qb(alias)` for custom queries to guarantee tenant filter. Avoid using `createQueryBuilder` directly unless you explicitly add `AND <alias>.tenantId = :tenantId`.
+- The wrapper reads `tenantId` from ALS on each call (no cached value). It is safe to keep the wrapped repo as a service field.
+
+### 5) Controller/guard rules
+- Use guards in this order on multi-tenant routes:
+  - `@UseGuards(JwtAuthGuard, TenantGuard, PermissionsGuard)`
+  - Rationale: Authenticate → establish/validate tenant context → check permissions.
+- Super admin usage:
+  - If `JwtUser.isSuperAdmin` is true and header `x-tenant-id` is present, that header becomes effective `tenantId` for the request.
+  - Otherwise, use `JwtUser.tenantId`.
+- Tenants (clinics) management routes are restricted to super admin only:
+  - `@UseGuards(JwtAuthGuard, SuperAdminGuard)` on `tenants` controller.
+- Auth routes (`/auth/login`, `/auth/refresh`, `/auth/me`) must NOT use `TenantGuard`.
+
+### 6) Auth/JWT rules
+- `JwtUser` must include:
+  - `tenantId: string` — default tenant for the user.
+  - `isSuperAdmin?: boolean` — derived from role (slug `super_admin`).
+- `AuthService` is responsible for setting these claims on login/refresh.
+
+### 7) Persistence and migrations
+- Disable schema `synchronize` in production; use migrations.
+- Initial migration file: `src/migrations/1736090000000-mt-init.ts`:
+  - Adds `tenantId` to all relevant tables.
+  - Backfills existing rows (`gen_random_uuid()`) and attempts to inherit doctors’ `tenantId` from roles when possible.
+  - Sets NOT NULL and creates composite unique and supporting indexes.
+- Ensure Postgres extension `pgcrypto` is available for `gen_random_uuid()`.
+- Tenants (clinics) table and foreign keys:
+  - `src/migrations/1736090500000-tenants-and-fks.ts` — creates `tenants`, seeds `default-clinic`, maps orphan `tenantId`s to default, and adds FKs from all multi-tenant tables to `tenants(id)`.
+  - `src/migrations/1736090600000-seed-second-tenant.ts` — seeds an additional clinic `clinic-beta` for testing.
+- App config:
+  - `synchronize: process.env.DB_SYNC === 'true'` in `AppModule`; prefer migrations.
+
+### 8) Cross-cutting concerns
+- Caching: Prefix keys with `tenant:{tenantId}:...`.
+- File storage: Store uploads under `uploads/{tenantId}/...` if isolation is required.
+- Jobs/queues/events: Either partition per tenant or include `tenantId` in payloads/subjects.
+- Auditing/logging: Include `tenantId` in logs and audit records.
+
+### 9) Dos and Don’ts
+- Do:
+  - Use tenant-aware repos for all multi-tenant entities.
+  - Add composite unique constraints with `tenantId`.
+  - Keep `tenantId` out of DTOs and controllers.
+  - Guard routes with `JwtAuthGuard`, `TenantGuard`, and `PermissionsGuard`.
+- Don’t:
+  - Write raw queries without scoping to `tenantId`.
+  - Rely on request body to supply `tenantId`.
+  - Mix global (shared) and tenant-specific data in the same table without a clear plan.
+
+### 10) Key files and references
+- Tenant plumbing:
+  - `src/common/tenant/tenant.context.ts`
+  - `src/common/tenant/tenant.interceptor.ts`
+  - `src/common/tenant/tenant.guard.ts`
+  - `src/common/tenant/tenant-repository.factory.ts`
+  - `src/common/tenant/tenant.module.ts`
+- Tenants (clinics):
+  - `src/tenants/entities/tenant.entity.ts`
+  - `src/tenants/tenants.controller.ts`
+  - `src/tenants/tenants.service.ts`
+  - `src/tenants/tenants.module.ts`
+  - `src/auth/super-admin.guard.ts`
+- Entities with `tenantId`:
+  - `src/doctors/entities/doctor.entity.ts`
+  - `src/directions/entities/direction.entity.ts`
+  - `src/certificate-types/entities/certificate-type.entity.ts`
+  - `src/roles/entities/role.entity.ts`
+  - `src/history/entities/history.entity.ts`
+- Services updated to tenant repos:
+  - `src/doctors/doctors.service.ts`
+  - `src/directions/directions.service.ts`
+  - `src/certificate-types/certificate-types.service.ts`
+  - `src/roles/roles.service.ts`
+  - `src/history/history.service.ts`
+- Controllers with guards:
+  - `src/doctors/doctors.controller.ts`
+  - `src/directions/directions.controller.ts`
+  - `src/certificate-types/certificate-types.controller.ts`
+  - `src/roles/roles.controller.ts`
+  - `src/history/history.controller.ts`
+  - `src/protect/protect.controller.ts`
+  - `src/verify/verify.controller.ts`
+- Auth:
+  - `src/auth/auth.service.ts` (sets `tenantId`, `isSuperAdmin` in JWT payload)
+- Migrations:
+  - `src/migrations/1736090000000-mt-init.ts`
+  - `src/migrations/1736090500000-tenants-and-fks.ts`
+  - `src/migrations/1736090600000-seed-second-tenant.ts`
+
+### 11) Quick checklist for new modules
+1. Add `tenantId` column and composite unique indexes.
+2. Use `TenantRepositoryFactory` in service(s).
+3. Guard controllers with `JwtAuthGuard`, `TenantGuard`, `PermissionsGuard`.
+4. Avoid `tenantId` in DTOs; rely on context.
+5. Add FK from `tenantId` to `tenants(id)`.
+6. Extend migrations if new tables are added.
+
