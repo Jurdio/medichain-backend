@@ -3,12 +3,11 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { TenantsService } from './tenants.service';
 import { CreateTenantDto } from './dto/create-tenant.dto';
 import { UpdateTenantDto } from './dto/update-tenant.dto';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { SuperAdminGuard } from '../auth/super-admin.guard';
+import { SaJwtAuthGuard } from '../sa-auth/sa-jwt.guard';
 
 @ApiTags('tenants')
-@ApiBearerAuth()
-@UseGuards(JwtAuthGuard, SuperAdminGuard)
+@ApiBearerAuth('sa-bearer')
+@UseGuards(SaJwtAuthGuard)
 @Controller('tenants')
 export class TenantsController {
   constructor(private readonly tenantsService: TenantsService) {}

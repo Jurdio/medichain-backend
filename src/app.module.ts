@@ -20,6 +20,8 @@ import { UsersModule } from './users/users.module';
 import { TenantModule } from './common/tenant/tenant.module';
 import { AuthModule } from './auth/auth.module';
 import { TenantsModule } from './tenants/tenants.module';
+import { SaModule } from './sa/sa.module';
+import { SaAuthModule } from './sa-auth/sa-auth.module';
 
 @Module({
   imports: [
@@ -56,6 +58,8 @@ import { TenantsModule } from './tenants/tenants.module';
     UsersModule,
     TenantsModule,
     AuthModule,
+    SaModule,
+    SaAuthModule,
   ],
   controllers: [AppController],
   providers: [

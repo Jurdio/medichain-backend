@@ -71,7 +71,8 @@ export class AuthService {
       roleSlug: doctor.role?.slug ?? null,
       permissions: doctor.role?.permissions as any,
       tenantId: (doctor as any).tenantId,
-      isSuperAdmin: doctor.role?.slug === 'super_admin',
+      // doctor tokens are never super admin; SA is a separate identity
+      isSuperAdmin: false,
     };
 
     const accessToken = await this.signAccessToken(payload);
@@ -106,7 +107,7 @@ export class AuthService {
         roleSlug: doctor.role?.slug ?? null,
         permissions: doctor.role?.permissions as any,
         tenantId: (doctor as any).tenantId,
-        isSuperAdmin: doctor.role?.slug === 'super_admin',
+        isSuperAdmin: false,
       };
 
       const newAccessToken = await this.signAccessToken(payload);
