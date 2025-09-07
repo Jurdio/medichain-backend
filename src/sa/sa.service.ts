@@ -72,15 +72,17 @@ export class SaService {
       .orderBy("DATE_TRUNC('day', d.createdAt)", 'ASC')
       .getRawMany();
 
-    // New tenants in last 90 days (weekly buckets)
-    const newTenants90d = await this.tenantRepo
+    // New tenants in last 30 days (daily buckets)
+    const newTenants30d = await this.tenantRepo
       .createQueryBuilder('t')
-      .select("DATE_TRUNC('week', t.createdAt)", 'week')
+      .select("DATE_TRUNC('day', t.createdAt)", 'day')
       .addSelect('COUNT(*)', 'count')
-      .where("t.createdAt >= NOW() - INTERVAL '90 days'")
-      .groupBy("DATE_TRUNC('week', t.createdAt)")
-      .orderBy("DATE_TRUNC('week', t.createdAt)", 'ASC')
+      .where("t.createdAt >= NOW() - INTERVAL '30 days'")
+      .groupBy("DATE_TRUNC('day', t.createdAt)")
+      .orderBy("DATE_TRUNC('day', t.createdAt)", 'ASC')
       .getRawMany();
+
+    // Removed newTenants90d (weekly) per request
 
     // Leaderboards
     const topTenants = await this.historyRepo
@@ -97,46 +99,12 @@ export class SaService {
       .limit(10)
       .getRawMany();
 
-    const topDoctors = await this.historyRepo
-      .createQueryBuilder('h')
-      .select('h.doctorWalletAddress', 'doctorWalletAddress')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('h.doctorWalletAddress')
-      .orderBy('count', 'DESC')
-      .limit(10)
-      .getRawMany();
+    // Removed topDoctors per request
 
     // Distributions
-    const doctorsByRole = await this.doctorRepo
-      .createQueryBuilder('d')
-      .leftJoin(Role, 'r', 'r.id = d.roleId')
-      .select('d.roleId', 'roleId')
-      .addSelect('r.name', 'roleName')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('d.roleId')
-      .addGroupBy('r.name')
-      .orderBy('count', 'DESC')
-      .getRawMany();
+    // Removed distributions per request
 
-    const doctorsBySpecialization = await this.doctorRepo
-      .createQueryBuilder('d')
-      .select('d.specialization', 'specialization')
-      .addSelect('COUNT(*)', 'count')
-      .groupBy('d.specialization')
-      .orderBy('count', 'DESC')
-      .getRawMany();
-
-    // Recent 10 issuance entries
-    const recentActivity = await this.historyRepo
-      .createQueryBuilder('h')
-      .select('h.tenantId', 'tenantId')
-      .addSelect('h.doctorWalletAddress', 'doctorWalletAddress')
-      .addSelect('h.patientWalletAddress', 'patientWalletAddress')
-      .addSelect('h.transactionSignature', 'transactionSignature')
-      .addSelect('h.createdAt', 'createdAt')
-      .orderBy('h.createdAt', 'DESC')
-      .limit(10)
-      .getRawMany();
+    // Removed recentActivity per request
 
     return {
       totals: {
@@ -153,20 +121,9 @@ export class SaService {
       },
       activity14d: activity14d.map((r) => ({ day: r.day, count: Number(r.count) })),
       newDoctors30d: newDoctors30d.map((r) => ({ day: r.day, count: Number(r.count) })),
-      newTenants90d: newTenants90d.map((r) => ({ week: r.week, count: Number(r.count) })),
+      newTenants30d: newTenants30d.map((r) => ({ day: r.day, count: Number(r.count) })),
       topTenants: topTenants.map((r) => ({ tenantId: r.tenantId, tenantName: r.tenantName, tenantSlug: r.tenantSlug, count: Number(r.count) })),
-      topDoctors: topDoctors.map((r) => ({ doctorWalletAddress: r.doctorWalletAddress, count: Number(r.count) })),
-      distributions: {
-        doctorsByRole: doctorsByRole.map((r) => ({ roleId: r.roleId, roleName: r.roleName ?? null, count: Number(r.count) })),
-        doctorsBySpecialization: doctorsBySpecialization.map((r) => ({ specialization: r.specialization ?? null, count: Number(r.count) })),
-      },
-      recentActivity: recentActivity.map((r) => ({
-        tenantId: r.tenantId,
-        doctorWalletAddress: r.doctorWalletAddress,
-        patientWalletAddress: r.patientWalletAddress,
-        transactionSignature: r.transactionSignature,
-        createdAt: r.createdAt,
-      })),
+      
     };
   }
 
@@ -218,48 +175,11 @@ export class SaService {
       .orderBy("DATE_TRUNC('day', d.createdAt)", 'ASC')
       .getRawMany();
 
-    const topDoctors = await this.historyRepo
-      .createQueryBuilder('h')
-      .select('h.doctorWalletAddress', 'doctorWalletAddress')
-      .addSelect('COUNT(*)', 'count')
-      .where('h.tenantId = :tenantId', { tenantId })
-      .groupBy('h.doctorWalletAddress')
-      .orderBy('count', 'DESC')
-      .limit(10)
-      .getRawMany();
+    // Removed topDoctors per request
 
-    const doctorsByRole = await this.doctorRepo
-      .createQueryBuilder('d')
-      .leftJoin(Role, 'r', 'r.id = d.roleId')
-      .select('d.roleId', 'roleId')
-      .addSelect('r.name', 'roleName')
-      .addSelect('COUNT(*)', 'count')
-      .where('d.tenantId = :tenantId', { tenantId })
-      .groupBy('d.roleId')
-      .addGroupBy('r.name')
-      .orderBy('count', 'DESC')
-      .getRawMany();
+    // Removed distributions per request
 
-    const doctorsBySpecialization = await this.doctorRepo
-      .createQueryBuilder('d')
-      .select('d.specialization', 'specialization')
-      .addSelect('COUNT(*)', 'count')
-      .where('d.tenantId = :tenantId', { tenantId })
-      .groupBy('d.specialization')
-      .orderBy('count', 'DESC')
-      .getRawMany();
-
-    const recentActivity = await this.historyRepo
-      .createQueryBuilder('h')
-      .select('h.tenantId', 'tenantId')
-      .addSelect('h.doctorWalletAddress', 'doctorWalletAddress')
-      .addSelect('h.patientWalletAddress', 'patientWalletAddress')
-      .addSelect('h.transactionSignature', 'transactionSignature')
-      .addSelect('h.createdAt', 'createdAt')
-      .where('h.tenantId = :tenantId', { tenantId })
-      .orderBy('h.createdAt', 'DESC')
-      .limit(10)
-      .getRawMany();
+    // Removed recentActivity per request
 
     return {
       tenantId,
@@ -276,18 +196,7 @@ export class SaService {
       },
       activity14d: activity14d.map((r) => ({ day: r.day, count: Number(r.count) })),
       newDoctors30d: newDoctors30d.map((r) => ({ day: r.day, count: Number(r.count) })),
-      topDoctors: topDoctors.map((r) => ({ doctorWalletAddress: r.doctorWalletAddress, count: Number(r.count) })),
-      distributions: {
-        doctorsByRole: doctorsByRole.map((r) => ({ roleId: r.roleId, roleName: r.roleName ?? null, count: Number(r.count) })),
-        doctorsBySpecialization: doctorsBySpecialization.map((r) => ({ specialization: r.specialization ?? null, count: Number(r.count) })),
-      },
-      recentActivity: recentActivity.map((r) => ({
-        tenantId: r.tenantId,
-        doctorWalletAddress: r.doctorWalletAddress,
-        patientWalletAddress: r.patientWalletAddress,
-        transactionSignature: r.transactionSignature,
-        createdAt: r.createdAt,
-      })),
+      
     };
   }
 }

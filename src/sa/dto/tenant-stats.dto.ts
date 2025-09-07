@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { CountPointDto, DistributionsDto, RecentActivityDto, TopDoctorDto } from './overview-stats.dto';
+import { CountPointDto } from './overview-stats.dto';
 
 export class TenantTotalsDto {
   @ApiProperty()
@@ -43,14 +43,9 @@ export class TenantStatsDto {
   @ApiProperty({ type: [CountPointDto] })
   newDoctors30d!: CountPointDto[];
 
-  @ApiProperty({ type: [TopDoctorDto] })
-  topDoctors!: TopDoctorDto[];
+  // Removed topDoctors and distributions per request
 
-  @ApiProperty({ type: DistributionsDto })
-  distributions!: DistributionsDto;
-
-  @ApiProperty({ type: [RecentActivityDto] })
-  recentActivity!: RecentActivityDto[];
+  // recentActivity removed per request
 }
 
 
